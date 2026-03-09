@@ -51,6 +51,10 @@ Example 2: Cruise 500 GPS:target:15000:70000:17000: false - won't use cruise off
 # Autopilot <DesiredSpeed> <GPS> <Optional:UseCruiseOffset>
 Travels to the target gps (plus configured offsets) or specified forward distance using omnidirectional thrust without turning the ship.
 
+# Approach <DesiredSpeed>
+(WeaponCore only) Approaches the locked target and comes to a stop just outside its bounding box.
+IMPORTANT: This uses the position of the target at the time of the command. Use at your own risk if the target is moving.
+
 # Retro/Retrograde
 Points the ship in the opposite direction of travel
 

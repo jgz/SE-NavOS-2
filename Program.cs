@@ -455,23 +455,6 @@ const int printInterval = 10;
         {
             //PB Output
             const string programInfoStr = programName + " v" + versionStr + " | ";
-            const string commandStr = @"
-All Commands:
-Cruise <Speed> <distance>
-Cruise <Speed> <X:Y:Z>
-Cruise <Speed> <GPS>
-Retro/Retrograde
-Prograde
-Retroburn
-Match
-Orient <GPS>
-Abort
-ThrustRatio <ratio0to1>
-Thrust Set <ratio>
-CalibrateTurn
-Journey Load
-Journey Start
-";
             string avgRtStr = profiler.RunningAverageMs.ToString("0.0000");
 
             pbOut.Append(programInfoStr).Append(avgRtStr);
@@ -506,10 +489,8 @@ Journey Start
 
             if (debugLcd != null)
                 pbOut.Append("\nDebug: ").Append(debugLcd != null);
-
-            pbOut.Append(commandStr)
-
-            .Append("\n-- Detected Blocks --")
+            
+            pbOut.Append("\n-- Detected Blocks --")
             .Append("\nConsoleLcd: " + (consoleLcd != null))
             .Append("\nDebugLcd: " + (debugLcd != null)).AppendLine()
             .Append(thrusters[Direction.Forward].Count + " Forward Thrusters\n")
