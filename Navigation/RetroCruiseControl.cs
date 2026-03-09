@@ -106,7 +106,6 @@ namespace IngameScript
         //updated every tick
         private double _targetDist;
         private Vector3D _targetDir;
-        private Vector3D _shipVelocity;
         private Vector3D _prevAimDir;
         private CruiseStage _initialStage = CruiseStage.None;
 
@@ -134,7 +133,6 @@ namespace IngameScript
 
             Stage = CruiseStage.None;
             _gridMass = controller.CalculateShipMass().PhysicalMass;
-
             UpdateThrustAndAccel();
         }
 
@@ -243,24 +241,26 @@ namespace IngameScript
         const int THRUST_UPS = 6;
         const double THRUST_TIME_STEP = 1.0 / THRUST_UPS;
 
+        private bool _stageChangedPrev = false;
+
         public void Run()
         {
             _counter++;
             bool update10 = _counter % 10 == 0;
             bool update30 = _counter % 30 == 0;
 
-            if (Stage == CruiseStage.None)
+            if (_stage == CruiseStage.None)
             {
                 ResetGyroOverride();
                 _thrustController.ResetThrustOverrides();
             }
 
-            if (update10 || Stage == CruiseStage.None)
+            if (update10 || _stage == CruiseStage.None)
             {
                 _naturalGravity = ShipController.GetNaturalGravity();
                 SetDampenerState(false);
             }
-            if (update30 || Stage == CruiseStage.None)
+            if (update30 || _stage == CruiseStage.None)
             {
                 _gridMass = ShipController.CalculateShipMass().PhysicalMass;
                 UpdateThrustAndAccel();
@@ -278,14 +278,14 @@ namespace IngameScript
 
             _targetDir = targetDir;
             _targetDist = targetDist;
-            _shipVelocity = currentVelocity;
 
-            bool stageChanged = false;
+            bool stageChanged = false || _stageChangedPrev;
+            _stageChangedPrev = false;
 
             // TODO: safe-fail for no thrust dir
             // TODO: collision avoidance
 
-            if (Stage == CruiseStage.None)
+            if (_stage == CruiseStage.None)
             {
                 if (_initialStage != CruiseStage.None) // restore from prev session
                 {
@@ -306,7 +306,7 @@ namespace IngameScript
                 }
             }
 
-            if (Stage == CruiseStage.CancelPerpendicularVelocity)
+            if (_stage == CruiseStage.CancelPerpendicularVelocity)
             {
                 // if moving away, full stop
 
@@ -391,24 +391,30 @@ namespace IngameScript
                     float forwardThrustRatio = onTarget ? (float)(currentSpeed / (_forwardAccelPremult * THRUST_TIME_STEP)) : 0;
                     forwardThrustRatio = MathHelper.Saturate(forwardThrustRatio) * MaxThrustRatio;
                     SetForwardThrustAndResetBackThrusts(forwardThrustRatio);
-                    _thrustController.SetSideThrusts(0, 0, 0, 0);
+
+                    Vector3D perpVel = Vector3D.ProjectOnPlane(ref currentVelocity, ref targetDir);
+                    DampenSidewaysToZero(perpVel, THRUST_UPS);
+
+                    if (perpVel.LengthSquared() < PERPENDICULAR_SPEED_THRESHOLD)
+                    {
+                        Stage = CruiseStage.Accelerate;
+                        stageChanged = true;
+                    }
                 }
 
                 _remainingStageTime = currentSpeed / _forwardAccelPremult;
-
-                if (currentSpeed < 0.05)
-                {
-                    Stage = CruiseStage.Accelerate;
-                    stageChanged = true;
-                }
             }
 
-            if (Stage == CruiseStage.Accelerate)
+            if (_stage == CruiseStage.Accelerate)
             {
                 double stopTime = currentSpeed / _forwardAccelPremult;
                 double stopDist = (currentSpeed * ShipFlipTimeInSeconds) + (currentSpeed * 0.5 * stopTime);
-                double availableDist = targetDist;
-                if (closing && stopDist >= availableDist)
+
+                Vector3D relativePos = Target - currentPos;
+                Vector3D velocityDir = currentVelocity.Normalized();
+                double availableDistSq = Vector3D.ProjectOnVector(ref relativePos, ref velocityDir).LengthSquared();
+
+                if (closing && (stopDist * stopDist) >= availableDistSq)
                 {
                     Stage = CruiseStage.Decelerate;
                     stageChanged = true;
@@ -480,7 +486,7 @@ namespace IngameScript
                 }
             }
 
-            if (Stage == CruiseStage.Decelerate)
+            if (_stage == CruiseStage.Decelerate)
             {
                 if (!closing)
                 {
@@ -508,6 +514,7 @@ namespace IngameScript
                     {
                         Stage = CruiseStage.Accelerate;
                         stageChanged = true;
+                        _stageChangedPrev = true;
                     }
                     else if (update10 || stageChanged)
                     {
@@ -543,7 +550,7 @@ namespace IngameScript
                 }
             }
 
-            if (Stage == CruiseStage.DecelerateNoOrient)
+            if (_stage == CruiseStage.DecelerateNoOrient)
             {
                 _prevAimDir = _prevAimDir.IsZero() ? _controller.WorldMatrix.Forward : _prevAimDir;
                 Orient(_prevAimDir);
@@ -602,6 +609,22 @@ namespace IngameScript
                     _thrustController.ResetThrustOverrides();
                 }
 
+                {
+                    double closingSpeed = currentSpeed;
+                    Vector3D aimDir = -currentVelocity.Normalized();
+                    Vector3D relativePos = Target - currentPos;
+                    double desiredStopDist = Vector3D.ProjectOnVector(ref relativePos, ref aimDir).Length();
+                    double desiredStopTime = desiredStopDist / (closingSpeed * 0.5) - THRUST_TIME_STEP;
+                    Vector3D perpVel = Vector3D.ProjectOnPlane(ref currentVelocity, ref targetDir);
+
+                    if (perpVel.LengthSquared() <= Math.Pow(desiredStopTime * _minSideAccel, 2))
+                    {
+                        Stage = CruiseStage.Decelerate;
+                        stageChanged = true;
+                        _stageChangedPrev = true;
+                    }
+                }
+
                 if (currentSpeed < 0.05)
                 {
                     Stage = CruiseStage.Terminated;
@@ -610,7 +633,7 @@ namespace IngameScript
                 }
             }
 
-            if (Stage == CruiseStage.Complete)
+            if (_stage == CruiseStage.Complete)
             {
                 Terminate(_targetDist < TARGET_REACHED_DISTANCE ? "Destination Reached" : "Terminated");
             }
