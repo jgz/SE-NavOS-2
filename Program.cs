@@ -349,6 +349,7 @@ const int printInterval = 10;
 
             LoadConfig(false);
             config.PersistStateData = "";
+            Storage = "";
             SaveConfig();
         }
 
@@ -558,8 +559,6 @@ Journey Start
             else return $"{minutes:00}:{seconds:00}";
         }
 
-        public static void Log(string message) => debug?.AppendLine(message);
-
-        public void SetStorage(string str) => Storage = str;
+        public static void Log(string message) => debug.AppendLine(message);
     }
 }
