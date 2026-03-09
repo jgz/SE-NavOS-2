@@ -34,7 +34,6 @@ Example:
 550 false GPS:StarCpt #3:-17933:48686:-29105:#FF75C9F1:
 150 true GPS:StarCpt #4:-17995:48270:-29421:#FF75C9F1:
 [Journey End]
-Note: The ship will be brought to a stop at the last waypoint regardless of the StopAtWaypoint flag
 
 Commands:
 # Cruise <DesiredSpeed> <ForwardDistanceMeters>

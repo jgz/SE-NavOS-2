@@ -152,7 +152,7 @@ namespace IngameScript
 
             started = true;
             currentStep = index;
-            if (step.StopAtWaypoint || index == waypoints.Count - 1)
+            if (step.StopAtWaypoint)
             {
                 cruiseControl = new RetroCruiseControl(step.Target + targetOffset, step.DesiredSpeed, aimControl, shipController, gyros, thrustControl, prog, false)
                 {
