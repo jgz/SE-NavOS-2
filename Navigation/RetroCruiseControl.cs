@@ -176,28 +176,6 @@ namespace IngameScript
 
         public void AppendStatus(StringBuilder strb)
         {
-            // Cruise | NavOS 2.16.2-alpha | RT
-            // Status ----------------------------
-            //   Canceling Lateral Velocity
-            //   Remaining Speed: 37.6 m/s
-            //   Remaining Dist: 4.6 km
-            //   Target Dist: 57.4 km
-            // Config ----------------------------
-            //   Speed: 500 m/s
-            //   Offsets: 0, 300 - impossible actually
-            //   Max Thrust: 50%
-            // -----------------------------------
-
-            // Cruise | NavOS 2.16.2-alpha | RT
-            // Status ----------------------------
-            //   Acceleration
-            //   Target Dist: 57.4 km
-
-            // Cruise | NavOS 2.16.2-alpha | RT
-            // Status ----------------------------
-            //   Deceleration
-            //   Target Dist: 57.4 km
-
             string targetDistStr = _targetDist < 1000 ? _targetDist.ToString("0 m") : (_targetDist / 1000d).ToString("0.0 km");
 
             strb.AppendLine($"Cruise | {Program.programName} {Program.versionStr} | {Program.profiler.RunningAverageMs:0.0000}");
