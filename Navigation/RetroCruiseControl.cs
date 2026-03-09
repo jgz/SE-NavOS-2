@@ -180,12 +180,12 @@ namespace IngameScript
 
             strb.AppendLine($"  {stageNames[(int)_stage]} {$"{(_remainingStageTime < 0 ? "-" : "")}{(int)_remainingStageTime / 60:00}:{Math.Abs(_remainingStageTime) % 60:00}".PadLeft(31 - 3 - stageNames[(int)_stage].Length)}");
             strb.Append(
-              _stage == CruiseStage.CancelPerpendicularVelocity           ? $"   Remaining Speed {_perpSpeed,8:0.0} m/s\n   Remaining Dist {_perpVelStopDist,11:0} m\n   Target Dist {targetDistStr,16:0}\n"
-              : _stage == CruiseStage.CancelPerpendicularVelocityFullStop ? $"   Target Dist {targetDistStr,16:0}\n"
-              : _stage == CruiseStage.Accelerate                          ? $"   Remaining Dist {(_accelDist < 1000 ? _accelDist.ToString("0 m") : (_accelDist / 1000d).ToString("0.0 km")),13}\n   Target Dist {targetDistStr,16:0}\n"
-              : _stage == CruiseStage.Decelerate                          ? $"   Stopping Dist {(_decelDist < 1000 ? _decelDist.ToString("0 m") : (_decelDist / 1000d).ToString("0.0 km")),14}\n   Target Dist {targetDistStr,16:0}\n"
-              : _stage == CruiseStage.DecelerateNoOrient                  ? $"   Target Dist {targetDistStr,16:0}\n"
-              : _stage == CruiseStage.Overshoot                           ? $"   Target Dist {targetDistStr,16:0}\n"
+              _stage == CruiseStage.CancelPerpendicularVelocity           ? $"   Remaining Speed {_perpSpeed,8:0.0} m/s\n   Remaining Dist {_perpVelStopDist,11:0} m\n   Target Dist {targetDistStr,16}\n"
+              : _stage == CruiseStage.CancelPerpendicularVelocityFullStop ? $"   Target Dist {targetDistStr,16}\n"
+              : _stage == CruiseStage.Accelerate                          ? $"   Remaining Dist {(_accelDist < 1000 ? _accelDist.ToString("0 m") : (_accelDist / 1000d).ToString("0.0 km")),13}\n   Target Dist {targetDistStr,16}\n"
+              : _stage == CruiseStage.Decelerate                          ? $"   Stopping Dist {(_decelDist < 1000 ? _decelDist.ToString("0 m") : (_decelDist / 1000d).ToString("0.0 km")),14}\n   Target Dist {targetDistStr,16}\n"
+              : _stage == CruiseStage.DecelerateNoOrient                  ? $"   Target Dist {targetDistStr,16}\n"
+              : _stage == CruiseStage.Overshoot                           ? $"   Target Dist {targetDistStr,16}\n"
               : _stage == CruiseStage.Complete                            ? $"{_terminateReason}"
               : _stage == CruiseStage.Aborted                             ? $""
               : _stage == CruiseStage.Terminated                          ? $"{_terminateReason}"
