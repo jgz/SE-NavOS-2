@@ -519,6 +519,23 @@ const int printInterval = 10;
                     pbOut.AppendLine($"  Max Thrust {thrustController.MaxForwardThrustRatio,18:0 %}");
                     _cruiseController?.AppendStatus(pbOut);
                 }
+                if (!string.IsNullOrWhiteSpace(optionalInfo))
+                {
+                    pbOut.AppendLine("Additional Info ----------------");
+                    pbOut.AppendLine(optionalInfo);
+                }
+                consoleLcd?.WriteText(pbOut);
+                pbOut.Clear();
+            }
+            else if (consoleLcd != null)
+            {
+                pbOut.AppendLine($"{NavMode} | NavOS {versionStr} | {profiler.RunningAverageMs:0.000}\nStatus ------------------------");
+                if (!string.IsNullOrWhiteSpace(optionalInfo))
+                {
+                    pbOut.AppendLine(optionalInfo);
+                }
+                pbOut.AppendLine($"Config ------------------------");
+                pbOut.AppendLine($"  Max Thrust {thrustController.MaxForwardThrustRatio,18:0 %}");
                 consoleLcd?.WriteText(pbOut);
                 pbOut.Clear();
             }

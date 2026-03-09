@@ -12,7 +12,7 @@ namespace IngameScript
     {
         public event CruiseTerminateEventDelegate CruiseTerminated;
 
-        public string Name => nameof(CalibrateTurnTime);
+        public string Name => "CalibrateTurn";
 
         const double TICK = 1.0 / 60.0;
         private const double orientToleranceAngleRadians = 0.075 * (Math.PI / 180.0);
@@ -33,8 +33,7 @@ namespace IngameScript
 
         public void AppendStatus(StringBuilder strb)
         {
-            strb.Append("\nCalibrating Turn Time...\n");
-            strb.Append("Elapsed Ms: ").Append(elapsedTimeMs.ToString("0\n"));
+            strb.AppendLine($"  Elapsed: {elapsedTimeMs:0} ms");
         }
 
         public void Run()
