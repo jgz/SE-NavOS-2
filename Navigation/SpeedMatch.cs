@@ -58,15 +58,21 @@ namespace IngameScript
 
         public void AppendStatus(StringBuilder strb)
         {
-            strb.AppendLine("-- SpeedMatch Status --");
-            strb.Append("Target: ").Append(targetEntityId);
             if (target.HasValue)
             {
-                strb.Append("\nName: ").Append(target.Value.Name);
-                strb.Append("\nRelativeVelocity: ").AppendLine(relativeVelocity.Length().ToString("0.0"));
-                strb.Append("\nMode: ").AppendLine(targetInfoMode.ToString());
+                strb.AppendLine($"{target.Value.Name,24}");
+                strb.AppendLine($"  Target Velocity {target.Value.Velocity.Length(),13:0.0 m/s}");
+                strb.AppendLine($"  Relative Velocity {relativeVelocity.Length(),11:0.0 m/s}");
+                strb.AppendLine($"  Mode {targetInfoMode,24}");
                 //maybe add some more info about the target?
             }
+            else
+            {
+                strb.AppendLine($"TargetId: {targetEntityId}");
+                strb.AppendLine("Error: Target Not Detected");
+            }
+            strb.AppendLine($"Config ------------------------");
+            strb.AppendLine($"  Max Thrust {thrustController.MaxForwardThrustRatio,18:0 %}");
         }
 
         private bool TryGetTarget(out MyDetectedEntityInfo? target, bool counter30)
@@ -110,6 +116,7 @@ namespace IngameScript
                 {
                     MyDetectedEntityInfo? ent = null;
                     //if neither methods found the target try looking thru obstructions
+                    obstructions.Clear();
                     wcApi.GetObstructions(pb, obstructions);
                     foreach (var obs in obstructions)
                     {
