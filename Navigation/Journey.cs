@@ -61,19 +61,34 @@ namespace IngameScript
 
         public void AppendStatus(StringBuilder strb)
         {
-            strb.Append("\n-- Journey Status --\n");
-            strb.Append(!started ? "Awaiting Start Command..." : ("Current Step:" + (currentStep + 1) + "\nWaypoints:"));
-            for (int i = 0; i < waypoints.Count; i++)
+            if (!started)
             {
-                var step = waypoints[i];
-                strb.Append("\n\n#" + (i + 1) + ": " + step.Name)
-                    .Append($"\nTarget: X:{step.Target.X:0.0} Y:{step.Target.Y:0.0} Z:{step.Target.Z:0.0}")
-                    .Append("\nSpeed: " + step.DesiredSpeed)
-                    .Append("StopAtWaypoint: " + step.StopAtWaypoint);
+                strb.AppendLine("Awaiting Start Command...");
+                strb.AppendLine("Waypoints:");
+                for (int i = 0; i < waypoints.Count; i++)
+                {
+                    var step = waypoints[i];
+                    strb.AppendLine($"#{i + 1}: {step.Name}")
+                        .AppendLine($"  Target: X:{step.Target.X:0} Y:{step.Target.Y:0} Z:{step.Target.Z:0}")
+                        .AppendLine($"  Speed: {step.DesiredSpeed}")
+                        .AppendLine($"  StopAtWaypoint: {step.StopAtWaypoint}");
+                }
             }
-            strb.Append('\n');
-            if (started)
+            else
+            {
+                strb.AppendLine($"Current Step: {currentStep + 1}");
+                strb.AppendLine("Waypoints:");
+                for (int i = 0; i < waypoints.Count; i++)
+                {
+                    var step = waypoints[i];
+                    strb.AppendLine($"#{i + 1}: {step.Name}")
+                        .AppendLine($"  Target: X:{step.Target.X:0} Y:{step.Target.Y:0} Z:{step.Target.Z:0}")
+                        .AppendLine($"  Speed: {step.DesiredSpeed}")
+                        .AppendLine($"  StopAtWaypoint: {step.StopAtWaypoint}");
+                }
+                strb.AppendLine("Cruise Status -----------------");
                 cruiseControl.AppendStatus(strb);
+            }
         }
 
         public bool HandleJourneyCommand(CommandLine cmd, out string failReason)
