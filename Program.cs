@@ -515,13 +515,13 @@ const int printInterval = 10;
                 _cruiseController?.AppendStatus(pbOut);
                 if (pbOut.Length == beforeLength)
                 {
-                    pbOut.AppendLine($"Config ------------------------");
+                    pbOut.AppendLine("Config ------------------------");
                     pbOut.AppendLine($"  Max Thrust {thrustController.MaxForwardThrustRatio,18:0 %}");
                     _cruiseController?.AppendStatus(pbOut);
                 }
                 if (!string.IsNullOrWhiteSpace(optionalInfo))
                 {
-                    pbOut.AppendLine("Additional Info ----------------");
+                    pbOut.AppendLine("Additional Info ---------------");
                     pbOut.AppendLine(optionalInfo);
                 }
                 consoleLcd?.WriteText(pbOut);
@@ -534,7 +534,7 @@ const int printInterval = 10;
                 {
                     pbOut.AppendLine(optionalInfo);
                 }
-                pbOut.AppendLine($"Config ------------------------");
+                pbOut.AppendLine("Config ------------------------");
                 pbOut.AppendLine($"  Max Thrust {thrustController.MaxForwardThrustRatio,18:0 %}");
                 consoleLcd?.WriteText(pbOut);
                 pbOut.Clear();
