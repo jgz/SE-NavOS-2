@@ -116,7 +116,7 @@ const int printInterval = 10;
         private List<IMyGyro> gyros = new List<IMyGyro>();
         private IMyShipController controller;
 
-        private static StringBuilder debug;
+        private static readonly StringBuilder debug = new StringBuilder();
         private IMyTextSurface debugLcd;
         private IMyTextSurface consoleLcd;
         public static int counter = -1;
@@ -427,8 +427,6 @@ const int printInterval = 10;
                 throw new Exception("No gyros");
 
             debugLcd = TryGetBlockWithName<IMyTextSurfaceProvider>(debugLcdName)?.GetSurface(0);
-            if (debugLcd != null)
-                debug = new StringBuilder();
             consoleLcd = TryGetBlockWithName<IMyTextSurfaceProvider>(config.ConsoleLcdName)?.GetSurface(0);
         }
 
