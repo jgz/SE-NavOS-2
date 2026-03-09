@@ -602,7 +602,7 @@ namespace IngameScript
                     float forwardThrustRatio = onTarget ? (float)(currentSpeed / (_forwardAccelPremult * THRUST_TIME_STEP)) : 0;
                     forwardThrustRatio = MathHelper.Saturate(forwardThrustRatio) * MaxThrustRatio;
                     SetForwardThrustAndResetBackThrusts(forwardThrustRatio);
-                    _thrustController.DampenAllDirections(currentVelocity, _gridMass, THRUST_UPS);
+                    DampenSidewaysToZero(currentVelocity, THRUST_UPS);
                 }
                 else if (update10 || stageChanged)
                 {
