@@ -106,21 +106,21 @@ namespace IngameScript
 
         public void AppendStatus(StringBuilder strb)
         {
-            strb.Append("\n-- OneWayCruise Status --\n\n");
+            string targetDistStr = distanceToTarget < 1000 ? distanceToTarget.ToString("0 m") : (distanceToTarget / 1000d).ToString("0.0 km");
 
-            const string stage1 = "> Cancel Perpendicular Speed\n";
+            string stageName =
+                Stage == OneWayCruiseStage.None ? "None" :
+                Stage == OneWayCruiseStage.CancelPerpendicularVelocity ? "Brrake Lateral Speed" :
+                Stage == OneWayCruiseStage.OrientAndAccelerate ? "Accelerate" :
+                Stage.ToString();
+            strb.AppendLine($"  {stageName}");
+            strb.AppendLine($"  Target Dist {targetDistStr,17}");
+            double eta = estimatedTimeOfArrival;
+            strb.AppendLine($"  ETA {$"{(eta < 0 ? "-" : "")}{(int)eta / 60:00}:{Math.Abs(eta) % 60:00}",25}");
 
-            strb.Append((byte)Stage == 1 ? stage1 : $">{stage1}>")
-                .Append(" Accelerate ").AppendTime(accelTime)
-                .Append("\nCruise ").AppendTime(cruiseTime)
-                .Append("\n\nETA: ").AppendTime(estimatedTimeOfArrival);
-
-            if (vmax != 0)
-                strb.Append("\nMax Speed: ").Append(vmax.ToString("0.00"));
-
-            strb.Append("\nTargetDistance: ").Append(distanceToTarget.ToString("0.0"))
-                .Append("\nDesired Speed: ").Append(DesiredSpeed.ToString("0.##"))
-                .Append("\nAim Error: ").Append(((lastAimDirectionAngleRad ?? 0) * RadToDegMulti).ToString("0.000\n"));
+            strb.AppendLine($"Config ------------------------");
+            strb.AppendLine($"  Max Speed {DesiredSpeed,15:0.0} m/s");
+            strb.AppendLine($"  Max Thrust {MaxThrustRatio,18:0 %}");
         }
 
         private void DampenSidewaysToZero(Vector3D shipVelocity, float ups)
