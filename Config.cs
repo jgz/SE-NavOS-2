@@ -15,22 +15,20 @@ namespace IngameScript
             Side,
         }
 
-        public static Config Default { get; } = new Config();
+        public string PersistStateData = "";
+        public double MaxThrustOverrideRatio = 1.0;
+        public bool IgnoreMaxThrustForSpeedMatch = false;
+        public string ShipControllerTag = "Nav";
+        public string ThrustGroupName = "NavThrust";
+        public string GyroGroupName = "NavGyros";
+        public string ConsoleLcdName = "consoleLcd";
+        public double CruiseOffsetDist = 0;
+        public double CruiseOffsetSideDist = 500;
+        public double Ship180TurnTimeSeconds = 10.0;
+        public bool MaintainDesiredSpeed = true;
+        public readonly List<string> JourneySetup = new List<string>();
 
-        public string PersistStateData { get; set; } = "";
-        public double MaxThrustOverrideRatio { get; set; } = 1.0;
-        public bool IgnoreMaxThrustForSpeedMatch { get; set; } = false;
-        public string ShipControllerTag { get; set; } = "Nav";
-        public string ThrustGroupName { get; set; } = "NavThrust";
-        public string GyroGroupName { get; set; } = "NavGyros";
-        public string ConsoleLcdName { get; set; } = "consoleLcd";
-        public double CruiseOffsetDist { get; set; } = 0;
-        public double CruiseOffsetSideDist { get; set; } = 500;
-        public double Ship180TurnTimeSeconds { get; set; } = 10.0;
-        public bool MaintainDesiredSpeed { get; set; } = true;
-        public List<string> JourneySetup { get; } = new List<string>();
-
-        private Config() { }
+        public Config() { }
 
         public static bool TryParse(string str, out Config config)
         {
@@ -138,16 +136,15 @@ namespace IngameScript
                     conf.Ship180TurnTimeSeconds = val;
             }
 
-            List<string> lineList = new List<string>(lines);
-            int journeyStartIndex = lineList.FindIndex(i => i == "[Journey Start]");
-            int journeyEndIndex = lineList.FindIndex(i => i == "[Journey End]");
+            int journeyStartIndex = Array.IndexOf(lines, "[Journey Start]");
+            int journeyEndIndex = Array.IndexOf(lines, "[Journey End]");
             if (journeyStartIndex >= 0 && journeyEndIndex > journeyStartIndex + 1)
             {
                 for (int i = journeyStartIndex + 1; i < journeyEndIndex; i++)
                 {
-                    if (!String.IsNullOrWhiteSpace(lineList[i]) && !lines[i].StartsWith("//"))
+                    if (!String.IsNullOrWhiteSpace(lines[i]) && !lines[i].StartsWith("//"))
                     {
-                        conf.JourneySetup.Add(lineList[i]);
+                        conf.JourneySetup.Add(lines[i]);
                     }
                 }
             }

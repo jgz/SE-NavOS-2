@@ -130,7 +130,7 @@ const int printInterval = 10;
 
         private DateTime bootTime;
         public const string programName = "NavOS";
-        public const string versionStr = "2.16";
+        public const string versionStr = "2.17a1";
 
         public Config config;
 
@@ -286,7 +286,7 @@ const int printInterval = 10;
         {
             if (!Config.TryParse(Me.CustomData, out config))
             {
-                config = Config.Default;
+                config = new Config();
             }
             SaveConfig(updateBlocks);
         }
