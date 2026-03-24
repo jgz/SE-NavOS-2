@@ -25,7 +25,6 @@ namespace IngameScript
         public double CruiseOffsetDist = 0;
         public double CruiseOffsetSideDist = 500;
         public double Ship180TurnTimeSeconds = 10.0;
-        public bool MaintainDesiredSpeed = true;
         public readonly List<string> JourneySetup = new List<string>();
 
         public Config() { }
@@ -149,13 +148,6 @@ namespace IngameScript
                 }
             }
 
-            if (confValues.TryGetValue(nameof(MaintainDesiredSpeed), out result))
-            {
-                bool val;
-                if (bool.TryParse(result, out val))
-                    conf.MaintainDesiredSpeed = val;
-            }
-
             config = conf;
             return true;
         }
@@ -190,9 +182,6 @@ namespace IngameScript
             strb.AppendLine();
             strb.AppendLine("// Time for the ship to do a 180 degree turn in seconds");
             strb.AppendLine($"{nameof(Ship180TurnTimeSeconds)}={Ship180TurnTimeSeconds}");
-            strb.AppendLine();
-            strb.AppendLine("// Keeps the ship oriented to the target and maintain speed until decel time");
-            strb.AppendLine($"{nameof(MaintainDesiredSpeed)}={MaintainDesiredSpeed}");
             strb.AppendLine();
             strb.AppendLine("// Format: <speed> <stopAtWaypoint> <GPS>");
             strb.AppendLine("[Journey Start]");
