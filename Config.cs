@@ -160,7 +160,7 @@ namespace IngameScript
             strb.AppendLine("// Remember to recompile after you change the config!");
             strb.AppendLine($"{nameof(PersistStateData)}={PersistStateData}");
             strb.AppendLine();
-            strb.AppendLine("// Maximum thrust override. 0 to 1 (Dont use 0)");
+            strb.AppendLine("// Maximum thrust override. 0 to 1 (Don't use 0)");
             strb.AppendLine($"{nameof(MaxThrustOverrideRatio)}={MaxThrustOverrideRatio}");
             strb.AppendLine($"{nameof(IgnoreMaxThrustForSpeedMatch)}={IgnoreMaxThrustForSpeedMatch}");
             strb.AppendLine();
@@ -173,7 +173,7 @@ namespace IngameScript
             strb.AppendLine("// If this group doesn't exist it uses all gyros");
             strb.AppendLine($"{nameof(GyroGroupName)}={GyroGroupName}");
             strb.AppendLine();
-            strb.AppendLine("// Copies pb output to this lcd is it exists");
+            strb.AppendLine("// Copies pb output to this lcd if it exists");
             strb.AppendLine($"{nameof(ConsoleLcdName)}={ConsoleLcdName}");
             strb.AppendLine();
             strb.AppendLine("// Cruise offset distances in meters");
