@@ -80,6 +80,7 @@ namespace IngameScript
 
         //updated every 30 ticks
         private float _gridMass;
+        private float _forwardAccel;
         private float _forwardAccelPremult;
         private float _minSideAccel;
 
@@ -214,8 +215,8 @@ namespace IngameScript
             _thrustController.SetSideThrusts(left, right, up, down);
         }
         
-        const int THRUST_UPS = 6;
-        const double THRUST_TIME_STEP = 1.0 / THRUST_UPS;
+        const int THRUST_UPS = 6; // don't change
+        const double THRUST_TIME_STEP = 1.0 / THRUST_UPS; // don't change
 
         private bool _stageChangedPrev = false;
 
@@ -436,7 +437,7 @@ namespace IngameScript
                         }
                         else
                         {
-                            double expectedAccel = _forwardAccelPremult * _lastForwardThrustRatioDuringAccel * THRUST_TIME_STEP;
+                            double expectedAccel = _forwardAccel * _lastForwardThrustRatioDuringAccel * THRUST_TIME_STEP;
                             double actualAccel = closingSpeed - _lastForwardSpeedDuringAccel;
 
                             double speedDelta = DesiredSpeed - closingSpeed;
@@ -633,7 +634,8 @@ namespace IngameScript
         private void UpdateThrustAndAccel()
         {
             _thrustController.UpdateThrusts();
-            _forwardAccelPremult = (float)(_thrustController.GetThrustInDirection(Direction.Forward) / _gridMass) * MaxThrustRatio;
+            _forwardAccel = (float)(_thrustController.GetThrustInDirection(Direction.Forward) / _gridMass);
+            _forwardAccelPremult = _forwardAccel * MaxThrustRatio;
             double leftThrust = _thrustController.GetThrustInDirection(Direction.Left);
             double rightThrust = _thrustController.GetThrustInDirection(Direction.Right);
             double upThrust = _thrustController.GetThrustInDirection(Direction.Up);
