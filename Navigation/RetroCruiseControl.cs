@@ -99,6 +99,7 @@ namespace IngameScript
         private double _accelDist;
         private double _lastForwardSpeedDuringAccel;
         private double _lastForwardThrustRatioDuringAccel;
+        private double _lastActualAccel;
 
         // decel variables
         private double _decelTime;
@@ -403,29 +404,6 @@ namespace IngameScript
 
                     double closingSpeed = currentSpeed > 0.00001 ? (currentSpeed * Vector3D.Dot(currentVelocity / currentSpeed, targetDir)) : 0;
 
-                    // displacement = |v0^2 - v1^2| / (2 * accel)
-                    double a2 = 2 * _forwardAccelPremult;
-                    double accelDist = closingSpeed < 0
-                        ? (-(closingSpeed * closingSpeed / a2) + (DesiredSpeed * DesiredSpeed / a2))
-                        : closingSpeed < DesiredSpeed
-                            ? ((DesiredSpeed * DesiredSpeed - closingSpeed * closingSpeed) / a2)
-                            : 0;
-                    double decelDist = DesiredSpeed * DesiredSpeed / a2;
-
-                    if (accelDist + decelDist > targetDist) // can't reach desired speed
-                    {
-                        _accelTime = Autopilot.ComputeTimeToDecel(closingSpeed, targetDist, _forwardAccelPremult, _forwardAccelPremult) - ShipFlipTimeInSeconds * 0.5;
-                        _accelDist = (closingSpeed + (closingSpeed + _forwardAccelPremult * _accelTime)) * 0.5 * _accelTime;
-                    }
-                    else
-                    {
-                        double cruiseDist = targetDist - accelDist - decelDist;
-                        _accelDist = accelDist + cruiseDist;
-                        _accelTime = (closingSpeed < DesiredSpeed ? ((DesiredSpeed - closingSpeed) / _forwardAccelPremult) : 0) + (cruiseDist / DesiredSpeed) - ShipFlipTimeInSeconds;
-                    }
-
-                    _remainingStageTime = _accelTime;
-
                     if (onTarget && (update10 || stageChanged))
                     {
                         float forwardThrustRatio;
@@ -434,6 +412,8 @@ namespace IngameScript
                             double speedDelta = DesiredSpeed - closingSpeed;
                             double desiredThrustRatio = _forwardAccelPremult > 0 ? (speedDelta / _forwardAccelPremult * THRUST_UPS) : 0;
                             forwardThrustRatio = (float)desiredThrustRatio;
+
+                            _lastActualAccel = _forwardAccelPremult;
                         }
                         else
                         {
@@ -444,6 +424,8 @@ namespace IngameScript
                             double desiredAccel = speedDelta + (expectedAccel - actualAccel);
                             double desiredThrustRatio = _forwardAccelPremult > 0 ? (desiredAccel / _forwardAccelPremult * THRUST_UPS) : 0;
                             forwardThrustRatio = (float)desiredThrustRatio;
+
+                            _lastActualAccel = MathHelper.Clamp(actualAccel, 0, _forwardAccelPremult);
                         }
 
                         forwardThrustRatio = MathHelper.Saturate(forwardThrustRatio) * MaxThrustRatio;
@@ -460,6 +442,35 @@ namespace IngameScript
                     {
                         _thrustController.ResetThrustOverrides();
                     }
+
+                    // displacement = |v0^2 - v1^2| / (2 * accel)
+                    double a2 = 2 * _lastActualAccel;
+                    double d2 = 2 * _forwardAccelPremult;
+                    double accelDist = closingSpeed < 0
+                        ? (-(closingSpeed * closingSpeed / d2) + (DesiredSpeed * DesiredSpeed / d2))
+                        : closingSpeed < DesiredSpeed
+                            ? ((DesiredSpeed * DesiredSpeed - closingSpeed * closingSpeed) / a2)
+                            : 0;
+                    double decelDist = DesiredSpeed * DesiredSpeed / d2;
+
+                    if (_lastActualAccel < 0.01)
+                    {
+                        _accelDist = targetDist - decelDist - (ShipFlipTimeInSeconds * closingSpeed);
+                        _accelTime = _accelDist / closingSpeed;
+                    }
+                    else if (accelDist + decelDist > targetDist) // can't reach desired speed
+                    {
+                        _accelTime = Autopilot.ComputeTimeToDecel(closingSpeed, targetDist, _lastActualAccel, _forwardAccelPremult) - ShipFlipTimeInSeconds * 0.5;
+                        _accelDist = (closingSpeed + (closingSpeed + _lastActualAccel * _accelTime)) * 0.5 * _accelTime;
+                    }
+                    else
+                    {
+                        double cruiseDist = targetDist - accelDist - decelDist;
+                        _accelDist = accelDist + cruiseDist;
+                        _accelTime = (closingSpeed < DesiredSpeed ? ((DesiredSpeed - closingSpeed) / _lastActualAccel) : 0) + (cruiseDist / DesiredSpeed) - ShipFlipTimeInSeconds;
+                    }
+
+                    _remainingStageTime = _accelTime;
                 }
             }
 
