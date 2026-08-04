@@ -165,6 +165,13 @@ namespace IngameScript
                     conf.MaintainDesiredSpeed = val;
             }
 
+            if (confValues.TryGetValue(nameof(MaxSpeedOverride), out result))
+            {
+                double val;
+                if (double.TryParse(result, out val))
+                    conf.MaxSpeedOverride = val;
+            }
+
             config = conf;
             return true;
         }
@@ -202,6 +209,10 @@ namespace IngameScript
             strb.AppendLine();
             strb.AppendLine("// Keeps the ship oriented to the target and maintain speed until decel time");
             strb.AppendLine($"{nameof(MaintainDesiredSpeed)}={MaintainDesiredSpeed}");
+            strb.AppendLine();
+            strb.AppendLine("// Max commanded speed in m/s. 0 = use the world speed limit.");
+            strb.AppendLine("// Raise this above the world limit on servers running Flip and Burn.");
+            strb.AppendLine($"{nameof(MaxSpeedOverride)}={MaxSpeedOverride}");
             strb.AppendLine();
             strb.AppendLine("// Format: <speed> <stopAtWaypoint> <GPS>");
             strb.AppendLine("[Journey Start]");
