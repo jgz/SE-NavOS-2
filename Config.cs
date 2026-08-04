@@ -28,6 +28,12 @@ namespace IngameScript
         public double CruiseOffsetSideDist { get; set; } = 500;
         public double Ship180TurnTimeSeconds { get; set; } = 10.0;
         public bool MaintainDesiredSpeed { get; set; } = true;
+
+        /// <summary>
+        /// Upper bound for commanded speed, in m/s. 0 uses the world ship speed limit, which is
+        /// the stock behaviour. Set this above the world limit on servers running Flip and Burn.
+        /// </summary>
+        public double MaxSpeedOverride { get; set; } = 0;
         public List<string> JourneySetup { get; } = new List<string>();
 
         private Config() { }
