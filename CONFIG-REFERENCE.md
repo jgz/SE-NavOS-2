@@ -1,0 +1,99 @@
+﻿NavOS v2.16 brought to you by StarCpt
+
+Config (In the customdata of the pb - Must recompile when modified!!):
+# PersistStateData: DO NOT TOUCH
+
+# MaxThrustOverrideRatio: Amount of forward thrust to use. 0 = 0%, 0.5 = 50%, 1 = 100%
+Important: In gravity forward override ratio may exceed this value.
+
+# IgnoreMaxThrustForSpeedMatch: Ignore the above config if using SpeedMatch if true.
+
+# ShipControllerTag: Put this tag in the name of the controller you want to use for orientation
+
+# ThrustGroupName: Only use thrusters in this group for navigation. Uses all thrusters on the ship if the group doesn't exist
+
+# GyroGroupName: Same as above but for gyros. Uses the first gyro in the group.
+
+# ConsoleLcdName: Name of the LCD you want some navigation information to be written to
+
+# CruiseOffsetDist: For GPS and X:Y:Z cruise commands, come to a stop this many meters earlier than the target
+# CruiseOffsetSideDist: For GPS and X:Y:Z cruise commands, offset the target by this many meters to the side (side = a random perpendicular direction to the target from your current position)
+
+# Ship180TurnTimeSeconds: How long it takes the ship to do a 180 degree turn in seconds.
+You need to set this to equal to or more than the actual 180 turn time. It determines when to turn for deceleration in case it can't get up to full cruise speed.
+This field is not calculated automatically, run CalibrateTurn to calculate this field. Recalibration is required whenever the mass of the ship changes significantly.
+
+# MaintainDesiredSpeed: Keeps the ship oriented to the target during cruise and maintains the desired speed if possible (resists RTS friction) until deceleration time.
+
+# [Journey Start] and [Journey End] (Experimental!)
+This is where journey data is input. Waypoint Format: <DesiredSpeed> <StopAtWaypoint> <GPS>
+StopAtWaypoint: Whether to stop at the destination or pass thru the point at speed
+Example:
+[Journey Start]
+200 true GPS:StarCpt #2:-17787:48220:-29137:
+550 false GPS:StarCpt #3:-17933:48686:-29105:#FF75C9F1:
+150 true GPS:StarCpt #4:-17995:48270:-29421:#FF75C9F1:
+[Journey End]
+
+Commands:
+# Cruise <DesiredSpeed> <ForwardDistanceMeters>
+Automatically travels the set distance in the forward direction of the ship controller (cockpit) at the desired speed.
+Example: Cruise 500 20000
+
+# Cruise <DesiredSpeed> <GPS> <Optional:UseCruiseOffset>
+Same as above for GPSes
+If UseCruiseOffset is unset, cruise offsets are enabled by default
+Example 1: Cruise 500 GPS:target:15000:70000:17000:
+Example 2: Cruise 500 GPS:target:15000:70000:17000: false - won't use cruise offsets
+
+# Autopilot <DesiredSpeed> <ForwardDistanceMeters>
+# Autopilot <DesiredSpeed> <GPS> <Optional:UseCruiseOffset>
+Travels to the target gps (plus configured offsets) or specified forward distance using omnidirectional thrust without turning the ship.
+
+# Approach <DesiredSpeed>
+(WeaponCore only) Approaches the locked target and comes to a stop just outside its bounding box.
+IMPORTANT: This uses the position of the target at the time of the command. Use at your own risk if the target is moving.
+
+# Retro/Retrograde
+Points the ship in the opposite direction of travel
+
+# Prograde
+Points the ship in the direction of travel
+
+# RadialIn
+Orient toward natural gravity
+
+# RadialOut
+Orient away from natural gravity
+
+# Retroburn
+Points the ship to retrograde and stops the ship
+
+# Match
+Matches speed to CURRENT WeaponCore lock, stays on that target even if locked target changes.
+Rerun the command to change speed match target to current WeaponCore lock.
+
+# Orient <GPS>
+Orients the ship to point in the direction of the gps with no thruster controls applied.
+
+# Abort
+Aborts any ongoing navigation routines. Disables all gyro and thrust overrides and reloads the config. Does not enable dampeners
+
+# ThrustRatio <ratio>
+# MaxThrustOverrideRatio <ratio>
+Sets the MaxThrustOverrideRatio config value. Input a value between 0 and 1. This is an alternative to editing the config.
+Using either ThrustRatio or MaxthrustOverrideRatio commands will do the same thing.
+Example: ThrustRatio 0.6
+
+# Thrust Set <ratio>
+Sets thrust override ratio on forward thrusters. Example command will set forward thrusters on 50% override.
+Example: Thrust Set 0.5
+
+# CalibrateTurn
+Measure and set the Ship180TurnTimeSeconds variable in the config. Make sure the ship is not moving or rotating when this command is used.
+
+# Journey Load (Experimental!)
+Loads the journey setup from config
+
+# Journey Start (Experimental!)
+Starts the journey if waypoints are loaded
