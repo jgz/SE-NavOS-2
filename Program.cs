@@ -297,7 +297,7 @@ const int printInterval = 10;
             counter++;
 
             // Must run every tick, before any controller reads velocity.
-            TrueVelocity.Sample(Me.CubeGrid.WorldAABB.Center, Runtime.TimeSinceLastRun.TotalSeconds);
+            TrueVelocity.Sample(Me.CubeGrid.WorldMatrix.Translation, Runtime.TimeSinceLastRun.TotalSeconds);
 
             if (argument.Length > 0)
             {
@@ -503,6 +503,11 @@ const int printInterval = 10;
             .Append(thrusters[Direction.Up].Count + " Up Thrusters\n")
             .Append(thrusters[Direction.Down].Count + " Down Thrusters\n")
             .Append(gyros.Count + " Gyros")
+            .Append("\n\n-- Velocity Source --")
+            .Append("\nPhysics: " + (controller != null ? controller.GetShipVelocities().LinearVelocity.Length().ToString("0.0") : "no controller"))
+            .Append("\nTracked: " + TrueVelocity.Value.Length().ToString("0.0"))
+            .Append("\nUsing:   " + (controller != null ? (controller.GetTrueVelocity().Length().ToString("0.0")) : "-"))
+            .Append("\ndt(ms):  " + Runtime.TimeSinceLastRun.TotalMilliseconds.ToString("0.0"))
             .Append("\n\n-- Runtime Information --")
             .Append("\nLast: " + Runtime.LastRunTimeMs)
             .Append("\nAverage: " + avgRtStr)
