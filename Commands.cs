@@ -94,6 +94,39 @@ namespace IngameScript
             optionalInfo = $"New thrust ratio set to {result:0.##}";
         }
 
+        /// <summary>
+        /// Scans the command for a "thrust=&lt;0..1&gt;" token, in any position. Returns null if
+        /// absent. Used to override MaxThrustOverrideRatio for a single command without touching
+        /// the saved config.
+        /// </summary>
+        private float? TryGetThrustFlag(CommandLine cmd, out string error)
+        {
+            error = null;
+            for (int i = 1; i < cmd.Count; i++)
+            {
+                string arg = cmd[i, true];
+                if (arg == null || !arg.StartsWith("thrust="))
+                    continue;
+
+                double val;
+                if (!double.TryParse(arg.Substring(7), out val))
+                {
+                    error = "Could not parse thrust=";
+                    return null;
+                }
+
+                if (val <= 0 || val > 1)
+                {
+                    error = "thrust= must be greater than 0 and at most 1";
+                    return null;
+                }
+
+                return (float)val;
+            }
+
+            return null;
+        }
+
         private void CommandCruise(CommandLine cmd)
         {
             AbortNav(false);
@@ -108,9 +141,19 @@ namespace IngameScript
             double desiredSpeed;
             Vector3D target;
             string error;
+            string thrustError;
+            float? thrustOverride = TryGetThrustFlag(cmd, out thrustError);
+            if (thrustError != null)
+            {
+                optionalInfo = thrustError;
+                return;
+            }
+
             if (TryParseCruiseCommands(cmd, out desiredSpeed, out target, out error))
             {
-                InitRetroCruise(target, desiredSpeed);
+                InitRetroCruise(target, desiredSpeed, thrustOverride: thrustOverride);
+                if (thrustOverride.HasValue)
+                    optionalInfo = $"Thrust limited to {thrustOverride.Value:0.##} for this cruise";
             }
             else
             {
@@ -118,10 +161,11 @@ namespace IngameScript
             }
         }
 
-        private void InitRetroCruise(Vector3D target, double speed, RetroCruiseControl.CruiseStage stage = RetroCruiseControl.CruiseStage.None, bool saveConfig = true)
+        private void InitRetroCruise(Vector3D target, double speed, RetroCruiseControl.CruiseStage stage = RetroCruiseControl.CruiseStage.None, bool saveConfig = true, float? thrustOverride = null)
         {
             speed = Math.Min(speed, this.GetWorldMaxSpeed());
-            thrustController.MaxForwardThrustRatio = (float)config.MaxThrustOverrideRatio;
+            // thrustOverride applies to this cruise only and is deliberately not saved to config.
+            thrustController.MaxForwardThrustRatio = thrustOverride ?? (float)config.MaxThrustOverrideRatio;
             NavMode = NavModeEnum.Cruise;
             CruiseController = new RetroCruiseControl(target, speed, aimController, controller, gyros, thrustController, this, stage)
             {

@@ -3,5 +3,6 @@ Fork: flip-and-burn-true-velocity (jgz) - true velocity above the Flip and Burn 
 
 Config lives in the PB Custom Data. RECOMPILE after changing it.
 MaxSpeedOverride: max commanded speed in m/s. 0 = use the world speed limit.
+Cruise accepts thrust=<0..1> anywhere in the command, for that run only.
 
 Full option docs: CONFIG-REFERENCE.md in the repo.
