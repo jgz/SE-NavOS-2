@@ -22,7 +22,7 @@ namespace IngameScript
 {
     public class RadialOut : Orient
     {
-        public override string Name => nameof(RadialOut);
+        public override string Name => "RadialOut";
 
         private Vector3D _gravity;
 

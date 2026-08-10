@@ -24,7 +24,7 @@ namespace IngameScript
     {
         const double TERMINATE_SPEED = 5;
 
-        public override string Name => nameof(Retrograde);
+        public override string Name => "Retrograde";
 
         public Retrograde(IAimController aimControl, IMyShipController controller, IList<IMyGyro> gyros)
             : base(aimControl, controller, gyros)

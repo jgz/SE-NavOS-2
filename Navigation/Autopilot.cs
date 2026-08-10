@@ -27,7 +27,7 @@ namespace IngameScript
 
         public event CruiseTerminateEventDelegate CruiseTerminated;
 
-        public string Name => nameof(Autopilot);
+        public string Name => "Autopilot";
         public Vector3D? Target
         {
             get { return _target; }

@@ -25,7 +25,7 @@ namespace IngameScript
         const double ORIENT_SPEED_THRESHOLD = 5; // don't orient under this speed since it can make the ship turn violently
         const float DAMPENER_TOLERANCE = 0.005f;
 
-        public override string Name => nameof(Retroburn);
+        public override string Name => "Retroburn";
 
         private VariableThrustController thrustController;
         private float gridMass;

@@ -62,6 +62,22 @@ namespace IngameScript
         public float MaxThrustRatio => _thrustController.MaxForwardThrustRatio;
         public double ShipFlipTimeInSeconds { get; set; } = 10;
 
+        /// <summary>
+        /// Fraction of the theoretical braking acceleration to believe. Defaults from
+        /// <see cref="Config.BrakingSafetyFactor"/>; <see cref="Journey"/> overrides it per leg.
+        /// </summary>
+        public double BrakingSafetyFactor { get; set; } = Config.MaxBrakingSafetyFactor;
+
+        /// <summary>
+        /// The deceleration the stopping-distance model is allowed to assume. Every prediction of
+        /// "can I still stop from here" uses this; the thrust actually commanded once braking
+        /// always uses the real <see cref="_forwardAccelPremult"/>, so a low factor makes the ship
+        /// start earlier, not brake weaker. Computed rather than cached because
+        /// <see cref="UpdateThrustAndAccel"/> runs in the constructor, before Journey has had a
+        /// chance to set the per-leg override.
+        /// </summary>
+        private float BrakingAccel => (float)(_forwardAccelPremult * BrakingSafetyFactor);
+
         const double PERPENDICULAR_SPEED_THRESHOLD = 1;
         const double DECEL_RESERVE_THRUST = 0.05; // % of allowed thrust to reserve to recover from minor overshoots
         const double TARGET_REACHED_SPEED = 0.05;
@@ -128,6 +144,7 @@ namespace IngameScript
             this._thrustController = thrustController;
             this._program = program;
             this._config = program.config;
+            this.BrakingSafetyFactor = program.config.BrakingSafetyFactor;
             this.savePersistentData = savePersistentData;
             this._controller = controller;
 
@@ -300,7 +317,7 @@ namespace IngameScript
                     Vector3D perpVel = Vector3D.ProjectOnPlane(ref currentVelocity, ref targetDir2);
                     double perpSpeed = perpVel.Length();
                     Vector3D velocityInTargetDir = Vector3D.ProjectOnVector(ref currentVelocity, ref targetDir2);
-                    double timeToStopPerpVel = perpSpeed / _forwardAccelPremult;
+                    double timeToStopPerpVel = perpSpeed / BrakingAccel;
                     Vector3D drift = (velocityInTargetDir * timeToStopPerpVel) + (perpVel * 0.5 * timeToStopPerpVel);
 
                     for (int i = 0; i < 10; i++)
@@ -310,7 +327,7 @@ namespace IngameScript
                         perpVel = Vector3D.ProjectOnPlane(ref currentVelocity, ref targetDir2);
                         perpSpeed = perpVel.Length();
                         velocityInTargetDir = Vector3D.ProjectOnVector(ref currentVelocity, ref targetDir2);
-                        timeToStopPerpVel = perpSpeed / _forwardAccelPremult;
+                        timeToStopPerpVel = perpSpeed / BrakingAccel;
                         drift = (velocityInTargetDir * timeToStopPerpVel) + (perpVel * 0.5 * timeToStopPerpVel);
                     }
 
@@ -323,7 +340,7 @@ namespace IngameScript
                     bool approachingAtEnd = Vector3D.Dot(velocityInTargetDir, targetDir2) > 0;
 
                     // or if we're approaching but don't have enough dist to stop, also full stop
-                    double actualStopTimeAtEnd = velocityInTargetDir.Length() / _forwardAccelPremult;
+                    double actualStopTimeAtEnd = velocityInTargetDir.Length() / BrakingAccel;
                     // flipTime * 0.5 since we're only turning 90 degrees
                     double actualStopDistAtEndSq = ((velocityInTargetDir * (ShipFlipTimeInSeconds * 0.5)) + (velocityInTargetDir * 0.5 * actualStopTimeAtEnd)).LengthSquared();
                     double availableStopDistAtEndSq = Vector3D.DistanceSquared(currentPos + drift, Target);
@@ -378,12 +395,12 @@ namespace IngameScript
                     }
                 }
 
-                _remainingStageTime = currentSpeed / _forwardAccelPremult;
+                _remainingStageTime = currentSpeed / BrakingAccel;
             }
 
             if (_stage == CruiseStage.Accelerate)
             {
-                double stopTime = currentSpeed / _forwardAccelPremult;
+                double stopTime = currentSpeed / BrakingAccel;
                 double stopDist = (currentSpeed * ShipFlipTimeInSeconds) + (currentSpeed * 0.5 * stopTime);
 
                 Vector3D relativePos = Target - currentPos;
@@ -404,16 +421,18 @@ namespace IngameScript
 
                     // displacement = |v0^2 - v1^2| / (2 * accel)
                     double a2 = 2 * _forwardAccelPremult;
+                    // braking side of the profile is derated; see BrakingSafetyFactor
+                    double d2 = 2 * BrakingAccel;
                     double accelDist = closingSpeed < 0
                         ? (-(closingSpeed * closingSpeed / a2) + (DesiredSpeed * DesiredSpeed / a2))
                         : closingSpeed < DesiredSpeed
                             ? ((DesiredSpeed * DesiredSpeed - closingSpeed * closingSpeed) / a2)
                             : 0;
-                    double decelDist = DesiredSpeed * DesiredSpeed / a2;
+                    double decelDist = DesiredSpeed * DesiredSpeed / d2;
 
                     if (accelDist + decelDist > targetDist) // can't reach desired speed
                     {
-                        _accelTime = Autopilot.ComputeTimeToDecel(closingSpeed, targetDist, _forwardAccelPremult, _forwardAccelPremult) - ShipFlipTimeInSeconds * 0.5;
+                        _accelTime = Autopilot.ComputeTimeToDecel(closingSpeed, targetDist, _forwardAccelPremult, BrakingAccel) - ShipFlipTimeInSeconds * 0.5;
                         _accelDist = (closingSpeed + (closingSpeed + _forwardAccelPremult * _accelTime)) * 0.5 * _accelTime;
                     }
                     else
@@ -484,7 +503,7 @@ namespace IngameScript
                     double closingSpeed = currentSpeed;
                     Vector3D relativePos = Target - currentPos;
                     double desiredStopDist = Vector3D.ProjectOnVector(ref relativePos, ref aimDir).Length();
-                    double timeUntilDecel = (desiredStopDist - (closingSpeed * closingSpeed) / (2 * _forwardAccelPremult)) / closingSpeed;
+                    double timeUntilDecel = (desiredStopDist - (closingSpeed * closingSpeed) / (2 * BrakingAccel)) / closingSpeed;
 
                     if (timeUntilDecel > 2 * ShipFlipTimeInSeconds)
                     {
@@ -496,16 +515,16 @@ namespace IngameScript
                     {
                         double desiredStopTime = desiredStopDist / (closingSpeed * 0.5) - THRUST_TIME_STEP;
                         double desiredStopAccel = (closing && desiredStopTime > 0 && closingSpeed > 0) ? (1.0 / (desiredStopTime / closingSpeed)) : _forwardAccelPremult;
-                        bool shouldDecel = desiredStopAccel >= _forwardAccelPremult * (1 - DECEL_RESERVE_THRUST);
+                        bool shouldDecel = desiredStopAccel >= BrakingAccel * (1 - DECEL_RESERVE_THRUST);
 
                         _decelTime = desiredStopTime;
-                        _decelDist = (closingSpeed * closingSpeed) / (2 * _forwardAccelPremult);
+                        _decelDist = (closingSpeed * closingSpeed) / (2 * BrakingAccel);
                         _remainingStageTime = _decelTime;
 
                         if (!shouldDecel && _forwardAccelPremult > 0)
                         {
                             // decel anyway if we'll otherwise overshoot
-                            double actualStopTime = currentSpeed / _forwardAccelPremult;
+                            double actualStopTime = currentSpeed / BrakingAccel;
                             double actualStopDist = currentSpeed * 0.5 * actualStopTime;
                             shouldDecel |= actualStopDist >= desiredStopDist - (closingSpeed * THRUST_TIME_STEP);
                         }
@@ -538,7 +557,7 @@ namespace IngameScript
                 else if (!closing && (update10 || stageChanged))
                 {
                     _thrustController.DampenAllDirections(currentVelocity, _gridMass, THRUST_UPS);
-                    _remainingStageTime = currentSpeed / _forwardAccelPremult;
+                    _remainingStageTime = currentSpeed / BrakingAccel;
                 }
                 else if (closing && (update10 || stageChanged))
                 {

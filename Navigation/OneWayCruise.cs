@@ -23,7 +23,7 @@ namespace IngameScript
 
         public event CruiseTerminateEventDelegate CruiseTerminated = delegate { };
 
-        public string Name => nameof(RetroCruiseControl);
+        public string Name => "RetroCruiseControl";
         public OneWayCruiseStage Stage
         {
             get { return _stage; }

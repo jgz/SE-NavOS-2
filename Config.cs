@@ -34,6 +34,21 @@ namespace IngameScript
         /// the stock behaviour. Set this above the world limit on servers running Flip and Burn.
         /// </summary>
         public double MaxSpeedOverride { get; set; } = 0;
+
+        /// <summary>
+        /// Derates the braking model when deciding WHEN to flip. Stopping distance is predicted
+        /// from theoretical MaxEffectiveThrust / mass; on a modded server real acceleration is
+        /// lower, so the flip starts late and the ship sails past the target. 0.70 means "assume
+        /// only 70% of the thrust the numbers claim". Lower brakes earlier. Clamped 0.25 - 1.0.
+        ///
+        /// This never reduces commanded thrust - once braking, the ship uses everything it has.
+        /// It only moves the decision point.
+        /// </summary>
+        public double BrakingSafetyFactor { get; set; } = 0.70;
+
+        public const double MinBrakingSafetyFactor = 0.25;
+        public const double MaxBrakingSafetyFactor = 1.0;
+
         public List<string> JourneySetup { get; } = new List<string>();
 
         private Config() { }
@@ -73,43 +88,43 @@ namespace IngameScript
 
             string result;
 
-            if (confValues.TryGetValue(nameof(PersistStateData), out result))
+            if (confValues.TryGetValue("PersistStateData", out result))
                 conf.PersistStateData = result;
 
-            if (confValues.TryGetValue(nameof(MaxThrustOverrideRatio), out result))
+            if (confValues.TryGetValue("MaxThrustOverrideRatio", out result))
             {
                 double val;
                 if (double.TryParse(result, out val))
                     conf.MaxThrustOverrideRatio = val;
             }
 
-            if (confValues.TryGetValue(nameof(IgnoreMaxThrustForSpeedMatch), out result))
+            if (confValues.TryGetValue("IgnoreMaxThrustForSpeedMatch", out result))
             {
                 bool val;
                 if (bool.TryParse(result, out val))
                     conf.IgnoreMaxThrustForSpeedMatch = val;
             }
 
-            if (confValues.TryGetValue(nameof(ShipControllerTag), out result))
+            if (confValues.TryGetValue("ShipControllerTag", out result))
                 conf.ShipControllerTag = result;
 
-            if (confValues.TryGetValue(nameof(ThrustGroupName), out result))
+            if (confValues.TryGetValue("ThrustGroupName", out result))
                 conf.ThrustGroupName = result;
 
-            if (confValues.TryGetValue(nameof(GyroGroupName), out result))
+            if (confValues.TryGetValue("GyroGroupName", out result))
                 conf.GyroGroupName = result;
 
-            if (confValues.TryGetValue(nameof(ConsoleLcdName), out result))
+            if (confValues.TryGetValue("ConsoleLcdName", out result))
                 conf.ConsoleLcdName = result;
 
-            if (confValues.TryGetValue(nameof(CruiseOffsetDist), out result))
+            if (confValues.TryGetValue("CruiseOffsetDist", out result))
             {
                 double val;
                 if (double.TryParse(result, out val))
                     conf.CruiseOffsetDist = val;
             }
 
-            if (confValues.TryGetValue(nameof(CruiseOffsetSideDist), out result))
+            if (confValues.TryGetValue("CruiseOffsetSideDist", out result))
             {
                 double val;
                 if (double.TryParse(result, out val))
@@ -137,7 +152,7 @@ namespace IngameScript
                 }
             }
 
-            if (confValues.TryGetValue(nameof(Ship180TurnTimeSeconds), out result))
+            if (confValues.TryGetValue("Ship180TurnTimeSeconds", out result))
             {
                 double val;
                 if (double.TryParse(result, out val))
@@ -158,18 +173,28 @@ namespace IngameScript
                 }
             }
 
-            if (confValues.TryGetValue(nameof(MaintainDesiredSpeed), out result))
+            if (confValues.TryGetValue("MaintainDesiredSpeed", out result))
             {
                 bool val;
                 if (bool.TryParse(result, out val))
                     conf.MaintainDesiredSpeed = val;
             }
 
-            if (confValues.TryGetValue(nameof(MaxSpeedOverride), out result))
+            if (confValues.TryGetValue("MaxSpeedOverride", out result))
             {
                 double val;
                 if (double.TryParse(result, out val))
                     conf.MaxSpeedOverride = val;
+            }
+
+            if (confValues.TryGetValue("BrakingSafetyFactor", out result))
+            {
+                double val;
+                if (double.TryParse(result, out val) && !double.IsNaN(val))
+                {
+                    conf.BrakingSafetyFactor =
+                        Math.Min(Math.Max(val, MinBrakingSafetyFactor), MaxBrakingSafetyFactor);
+                }
             }
 
             config = conf;
@@ -182,39 +207,44 @@ namespace IngameScript
 
             strb.AppendLine($"NavConfig | {Program.versionStr}");
             strb.AppendLine("// Remember to recompile after you change the config!");
-            strb.AppendLine($"{nameof(PersistStateData)}={PersistStateData}");
+            strb.AppendLine($"{"PersistStateData"}={PersistStateData}");
             strb.AppendLine();
             strb.AppendLine("// Maximum thrust override. 0 to 1 (Dont use 0)");
-            strb.AppendLine($"{nameof(MaxThrustOverrideRatio)}={MaxThrustOverrideRatio}");
-            strb.AppendLine($"{nameof(IgnoreMaxThrustForSpeedMatch)}={IgnoreMaxThrustForSpeedMatch}");
+            strb.AppendLine($"{"MaxThrustOverrideRatio"}={MaxThrustOverrideRatio}");
+            strb.AppendLine($"{"IgnoreMaxThrustForSpeedMatch"}={IgnoreMaxThrustForSpeedMatch}");
             strb.AppendLine();
             strb.AppendLine("// Tag for the controller used for ship orientation");
-            strb.AppendLine($"{nameof(ShipControllerTag)}={ShipControllerTag}");
+            strb.AppendLine($"{"ShipControllerTag"}={ShipControllerTag}");
             strb.AppendLine();
             strb.AppendLine("// If this group doesn't exist it uses all thrusters");
-            strb.AppendLine($"{nameof(ThrustGroupName)}={ThrustGroupName}");
+            strb.AppendLine($"{"ThrustGroupName"}={ThrustGroupName}");
             strb.AppendLine();
             strb.AppendLine("// If this group doesn't exist it uses all gyros");
-            strb.AppendLine($"{nameof(GyroGroupName)}={GyroGroupName}");
+            strb.AppendLine($"{"GyroGroupName"}={GyroGroupName}");
             strb.AppendLine();
             strb.AppendLine("// Copies pb output to this lcd is it exists");
-            strb.AppendLine($"{nameof(ConsoleLcdName)}={ConsoleLcdName}");
+            strb.AppendLine($"{"ConsoleLcdName"}={ConsoleLcdName}");
             strb.AppendLine();
             strb.AppendLine("// Cruise offset distances in meters");
-            strb.AppendLine($"{nameof(CruiseOffsetDist)}={CruiseOffsetDist}");
-            strb.AppendLine($"{nameof(CruiseOffsetSideDist)}={CruiseOffsetSideDist}");
+            strb.AppendLine($"{"CruiseOffsetDist"}={CruiseOffsetDist}");
+            strb.AppendLine($"{"CruiseOffsetSideDist"}={CruiseOffsetSideDist}");
             strb.AppendLine();
             strb.AppendLine("// Time for the ship to do a 180 degree turn in seconds");
-            strb.AppendLine($"{nameof(Ship180TurnTimeSeconds)}={Ship180TurnTimeSeconds}");
+            strb.AppendLine($"{"Ship180TurnTimeSeconds"}={Ship180TurnTimeSeconds}");
             strb.AppendLine();
             strb.AppendLine("// Keeps the ship oriented to the target and maintain speed until decel time");
-            strb.AppendLine($"{nameof(MaintainDesiredSpeed)}={MaintainDesiredSpeed}");
+            strb.AppendLine($"{"MaintainDesiredSpeed"}={MaintainDesiredSpeed}");
             strb.AppendLine();
             strb.AppendLine("// Max commanded speed in m/s. 0 = use the world speed limit.");
             strb.AppendLine("// Raise this above the world limit on servers running Flip and Burn.");
-            strb.AppendLine($"{nameof(MaxSpeedOverride)}={MaxSpeedOverride}");
+            strb.AppendLine($"{"MaxSpeedOverride"}={MaxSpeedOverride}");
             strb.AppendLine();
-            strb.AppendLine("// Format: <speed> <stopAtWaypoint> <GPS>");
+            strb.AppendLine("// How much of the theoretical braking thrust to believe when deciding");
+            strb.AppendLine("// when to flip. Lower = brakes earlier. 1.0 = stock. Range 0.25 - 1.0.");
+            strb.AppendLine($"{"BrakingSafetyFactor"}={BrakingSafetyFactor}");
+            strb.AppendLine();
+            strb.AppendLine("// Format: <speed> <stopAtWaypoint> [thrustRatio] [brakingSafetyFactor] <GPS>");
+            strb.AppendLine("// The two optional numbers override the global settings for that leg only.");
             strb.AppendLine("[Journey Start]");
             foreach (var line in JourneySetup)
                 strb.AppendLine(line);

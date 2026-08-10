@@ -24,7 +24,7 @@ namespace IngameScript
     {
         private const double TERMINATE_SPEED = 5;
 
-        public override string Name => nameof(Prograde);
+        public override string Name => "Prograde";
 
         public Prograde(IAimController aimControl, IMyShipController controller, IList<IMyGyro> gyros)
             : base(aimControl, controller, gyros)

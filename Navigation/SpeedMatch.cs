@@ -22,7 +22,7 @@ namespace IngameScript
 
         public event CruiseTerminateEventDelegate CruiseTerminated;
 
-        public string Name => nameof(SpeedMatch);
+        public string Name => "SpeedMatch";
         public IMyShipController ShipController { get; set; }
 
         public double relativeSpeedThreshold = 0.01;//stop dampening under this relative speed

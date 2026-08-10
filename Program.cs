@@ -479,16 +479,16 @@ const int printInterval = 10;
             }
 
             pbOut.Append("\n-- Loaded Config --\n" +
-                nameof(config.MaxThrustOverrideRatio) + "=" + config.MaxThrustOverrideRatio.ToString() + "\n" +
-                nameof(config.IgnoreMaxThrustForSpeedMatch) + "=" + config.IgnoreMaxThrustForSpeedMatch.ToString() + "\n" +
-                nameof(config.ShipControllerTag) + "=" + config.ShipControllerTag + "\n" +
-                nameof(config.ThrustGroupName) + "=" + config.ThrustGroupName + "\n" +
-                nameof(config.GyroGroupName) + "=" + config.GyroGroupName + "\n" +
-                nameof(config.ConsoleLcdName) + "=" + config.ConsoleLcdName + "\n" +
-                nameof(config.CruiseOffsetDist) + "=" + config.CruiseOffsetDist.ToString() + "\n" +
-                nameof(config.CruiseOffsetSideDist) + "=" + config.CruiseOffsetSideDist.ToString() + "\n" +
-                nameof(config.Ship180TurnTimeSeconds) + "=" + config.Ship180TurnTimeSeconds.ToString() + "\n" +
-                nameof(config.MaintainDesiredSpeed) + "=" + config.MaintainDesiredSpeed.ToString() + "\n");
+                "MaxThrustOverrideRatio" + "=" + config.MaxThrustOverrideRatio.ToString() + "\n" +
+                "IgnoreMaxThrustForSpeedMatch" + "=" + config.IgnoreMaxThrustForSpeedMatch.ToString() + "\n" +
+                "ShipControllerTag" + "=" + config.ShipControllerTag + "\n" +
+                "ThrustGroupName" + "=" + config.ThrustGroupName + "\n" +
+                "GyroGroupName" + "=" + config.GyroGroupName + "\n" +
+                "ConsoleLcdName" + "=" + config.ConsoleLcdName + "\n" +
+                "CruiseOffsetDist" + "=" + config.CruiseOffsetDist.ToString() + "\n" +
+                "CruiseOffsetSideDist" + "=" + config.CruiseOffsetSideDist.ToString() + "\n" +
+                "Ship180TurnTimeSeconds" + "=" + config.Ship180TurnTimeSeconds.ToString() + "\n" +
+                "MaintainDesiredSpeed" + "=" + config.MaintainDesiredSpeed.ToString() + "\n");
 
             if (debugLcd != null)
                 pbOut.Append("\nDebug: ").Append(debugLcd != null);
