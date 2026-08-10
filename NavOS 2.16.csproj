@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netframework48</TargetFramework>
@@ -8,9 +8,9 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
 
-  <ItemGroup>
-    <AdditionalFiles Include="Instructions.readme" />
-  </ItemGroup>
+  <!-- No AdditionalFiles: MDK prepends Instructions.readme verbatim into the packed
+       script, and that block cost over 5,000 of the 100,000 characters the PB allows.
+       The documentation lives in README.md and CONFIG-REFERENCE.md instead. -->
 
   <ItemGroup>
     <PackageReference Include="Mal.Mdk2.PbAnalyzers" Version="2.1.14">

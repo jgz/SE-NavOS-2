@@ -34,6 +34,19 @@ namespace IngameScript
         /// the stock behaviour. Set this above the world limit on servers running Flip and Burn.
         /// </summary>
         public double MaxSpeedOverride { get; set; } = 0;
+
+        /// <summary>
+        /// How much of the theoretical braking acceleration to believe when deciding WHEN to
+        /// flip. Stopping distance is predicted from MaxEffectiveThrust / mass; on a modded
+        /// server real acceleration is lower, so the flip starts late and the ship sails past
+        /// the target. 0.70 means "assume only 70% of what the numbers claim". Lower brakes
+        /// earlier. Never reduces commanded thrust - it only moves the decision point.
+        /// </summary>
+        public double BrakingSafetyFactor { get; set; } = 0.70;
+
+        public const double MinBrakingSafetyFactor = 0.25;
+        public const double MaxBrakingSafetyFactor = 1.0;
+
         public List<string> JourneySetup { get; } = new List<string>();
 
         private Config() { }
@@ -165,6 +178,16 @@ namespace IngameScript
                     conf.MaintainDesiredSpeed = val;
             }
 
+            if (confValues.TryGetValue(nameof(BrakingSafetyFactor), out result))
+            {
+                double val;
+                if (double.TryParse(result, out val) && !double.IsNaN(val))
+                {
+                    conf.BrakingSafetyFactor =
+                        Math.Min(Math.Max(val, MinBrakingSafetyFactor), MaxBrakingSafetyFactor);
+                }
+            }
+
             if (confValues.TryGetValue(nameof(MaxSpeedOverride), out result))
             {
                 double val;
@@ -213,8 +236,9 @@ namespace IngameScript
             strb.AppendLine("// Max commanded speed in m/s. 0 = use the world speed limit.");
             strb.AppendLine("// Raise this above the world limit on servers running Flip and Burn.");
             strb.AppendLine($"{nameof(MaxSpeedOverride)}={MaxSpeedOverride}");
+            strb.AppendLine($"{nameof(BrakingSafetyFactor)}={BrakingSafetyFactor}");
             strb.AppendLine();
-            strb.AppendLine("// Format: <speed> <stopAtWaypoint> <GPS>");
+            strb.AppendLine("// <speed> <stopAtWaypoint> [thrustRatio] [brakingFactor] <GPS>");
             strb.AppendLine("[Journey Start]");
             foreach (var line in JourneySetup)
                 strb.AppendLine(line);

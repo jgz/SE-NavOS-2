@@ -152,11 +152,21 @@ namespace IngameScript
 
             started = true;
             currentStep = index;
+
+            // Per-leg profile. Set unconditionally, not only when overridden: thrustControl is
+            // shared across legs and would otherwise keep the previous leg's value.
+            thrustControl.MaxForwardThrustRatio = (float)(step.ThrustRatio > 0
+                ? step.ThrustRatio
+                : prog.config.MaxThrustOverrideRatio);
+
             if (step.StopAtWaypoint)
             {
                 cruiseControl = new RetroCruiseControl(step.Target + targetOffset, step.DesiredSpeed, aimControl, shipController, gyros, thrustControl, prog, false)
                 {
                     ShipFlipTimeInSeconds = this.decelStartMarginSeconds,
+                    BrakingSafetyFactor = step.BrakingSafetyFactor > 0
+                        ? Math.Min(Math.Max(step.BrakingSafetyFactor, Config.MinBrakingSafetyFactor), Config.MaxBrakingSafetyFactor)
+                        : prog.config.BrakingSafetyFactor,
                 };
             }
             else
@@ -217,7 +227,11 @@ namespace IngameScript
             CruiseTerminated.Invoke(this, reason);
         }
 
-        //format: <speed> <stopAtWaypoint: true/false> <gps>
+        //format: <speed> <stopAtWaypoint: true/false> [thrustRatio] [brakingFactor] <gps>
+        //
+        // The two optional numbers override MaxThrustOverrideRatio and BrakingSafetyFactor for
+        // that leg alone. Recognised positionally; GPS tokens start with "GPS:" so there is
+        // nothing to disambiguate, and routes written before this still parse unchanged.
         public static bool TryParseWaypoint(string line, out Waypoint waypoint)
         {
             string[] args = line.Split(' ');
@@ -231,12 +245,28 @@ namespace IngameScript
             GPS gps;
             if (double.TryParse(args[0], out speed) && bool.TryParse(args[1], out stopAtWaypoint) && GPS.TryParse(line, out gps))
             {
-                waypoint = new Waypoint(gps.Name, speed, gps.Position, stopAtWaypoint);
+                double thrustRatio = INHERIT, brakingSafetyFactor = INHERIT;
+                int found = 0;
+                for (int i = 2; i < args.Length && found < 2; i++)
+                {
+                    if (args[i].StartsWith("GPS:", StringComparison.OrdinalIgnoreCase))
+                        break;
+                    double val;
+                    if (!double.TryParse(args[i], out val))
+                        continue;
+                    if (found == 0) thrustRatio = val; else brakingSafetyFactor = val;
+                    found++;
+                }
+
+                waypoint = new Waypoint(gps.Name, speed, gps.Position, stopAtWaypoint, thrustRatio, brakingSafetyFactor);
                 return true;
             }
             waypoint = default(Waypoint);
             return false;
         }
+
+        /// <summary>Sentinel for "this leg does not override the global setting".</summary>
+        public const double INHERIT = -1;
 
         public struct Waypoint
         {
@@ -245,12 +275,21 @@ namespace IngameScript
             public Vector3D Target;
             public bool StopAtWaypoint;
 
-            public Waypoint(string name, double desiredSpeed, Vector3D target, bool stopAtWaypoint)
+            /// <summary>Per-leg MaxThrustOverrideRatio, or <see cref="INHERIT"/>.</summary>
+            public double ThrustRatio;
+
+            /// <summary>Per-leg BrakingSafetyFactor, or <see cref="INHERIT"/>.</summary>
+            public double BrakingSafetyFactor;
+
+            public Waypoint(string name, double desiredSpeed, Vector3D target, bool stopAtWaypoint,
+                double thrustRatio = INHERIT, double brakingSafetyFactor = INHERIT)
             {
                 Name = name;
                 DesiredSpeed = desiredSpeed;
                 Target = target;
                 StopAtWaypoint = stopAtWaypoint;
+                ThrustRatio = thrustRatio;
+                BrakingSafetyFactor = brakingSafetyFactor;
             }
         }
     }

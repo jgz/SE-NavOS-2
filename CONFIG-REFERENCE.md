@@ -25,15 +25,31 @@ This field is not calculated automatically, run CalibrateTurn to calculate this 
 
 # MaintainDesiredSpeed: Keeps the ship oriented to the target during cruise and maintains the desired speed if possible (resists RTS friction) until deceleration time.
 
+# BrakingSafetyFactor: How much of the theoretical braking thrust to believe. Range 0.25 - 1.0, default 0.70.
+Stopping distance is predicted from MaxEffectiveThrust / mass. On a modded server the real
+acceleration is lower than that, so the flip starts late and the ship sails past the target.
+0.70 tells NavOS to assume it only has 70% of the braking it thinks it has, so it commits to the
+flip earlier. Lower = brakes earlier. 1.0 = stock behaviour.
+It never reduces the thrust actually commanded - once braking, the ship still uses everything it
+has. The factor only moves the decision point.
+If you still overshoot, drop it in steps of 0.05. If you arrive far too slowly, raise it.
+
 # [Journey Start] and [Journey End] (Experimental!)
-This is where journey data is input. Waypoint Format: <DesiredSpeed> <StopAtWaypoint> <GPS>
+This is where journey data is input.
+Waypoint Format: <DesiredSpeed> <StopAtWaypoint> [ThrustRatio] [BrakingSafetyFactor] <GPS>
 StopAtWaypoint: Whether to stop at the destination or pass thru the point at speed
+ThrustRatio and BrakingSafetyFactor are optional and override the global settings for that leg
+only. Omit them and the leg uses MaxThrustOverrideRatio and BrakingSafetyFactor as normal, so
+routes written before these existed still work unchanged.
 Example:
 [Journey Start]
 200 true GPS:StarCpt #2:-17787:48220:-29137:
 550 false GPS:StarCpt #3:-17933:48686:-29105:#FF75C9F1:
-150 true GPS:StarCpt #4:-17995:48270:-29421:#FF75C9F1:
+150 true 0.5 0.55 GPS:StarCpt #4:-17995:48270:-29421:#FF75C9F1:
 [Journey End]
+
+The third leg above arrives on half thrust and brakes early - the shape you want for a final
+approach to a station.
 
 Commands:
 # Cruise <DesiredSpeed> <ForwardDistanceMeters>
