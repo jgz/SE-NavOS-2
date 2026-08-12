@@ -484,10 +484,15 @@ namespace IngameScript
                 // symmetric midpoint rule below is not a backstop - it IS the correct answer.
                 bool plannerOverdue = false;
 
-                Program.Log($"v={currentSpeed:0} tgt={_targetDist / 1000:0.0}k stop={stopDist / 1000:0.0}k"
-                    + $" avail={Math.Sqrt(availableDistSq) / 1000:0.0}k flipAt={_midpointR / 1000:0.0}k"
-                    + $" accelD={_accelDist / 1000:0.0}k brakeAcc={BrakingAccel:0.0}"
-                    + $" [{(stopDist * stopDist >= availableDistSq ? "MODEL " : "")}{(pastMidpoint ? "MID " : "")}{(plannerOverdue ? "PLAN " : "")}{(_plannerCanReachSpeed ? "reach" : "degen")}]");
+                // phys vs trk is the question: the ship covers ~3.9 km/s of ground while v reads
+                // 1000, so either TrueVelocity is not tracking or GetTrueVelocity is not preferring
+                // it. Print both raw figures rather than guess. avail has been identical to tgt in
+                // every sample so far, so it is not worth the characters.
+                Program.Log($"v={currentSpeed:0} phys={ShipController.GetShipVelocities().LinearVelocity.Length():0}"
+                    + $" trk={TrueVelocity.Value.Length():0} dt={_program.Runtime.TimeSinceLastRun.TotalSeconds:0.000}"
+                    + $" tgt={_targetDist / 1000:0.0}k stop={stopDist / 1000:0.0}k flipAt={_midpointR / 1000:0.0}k"
+                    + $" bAcc={BrakingAccel:0.0}"
+                    + $" [{(stopDist * stopDist >= availableDistSq ? "MODEL " : "")}{(pastMidpoint ? "MID" : "")}]");
 
                 if (closing && ((stopDist * stopDist) >= availableDistSq || pastMidpoint))
                 {
