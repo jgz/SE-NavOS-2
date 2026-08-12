@@ -35,8 +35,16 @@ namespace IngameScript
         /// </summary>
         private const double MaxPlausibleJumpMetres = 20000;
 
-        /// <summary>Smoothing factor. Bursty position updates need averaging, not rejection.</summary>
-        private const double Smoothing = 0.15;
+        /// <summary>
+        /// Smoothing factor. Bursty position updates need averaging, not rejection.
+        ///
+        /// Measured burst pattern on the server: dpos alternates 16.7 m (the clamped 1000 m/s) and
+        /// ~48 m (catching up), tick on tick off. At 0.15 that left the estimate oscillating about
+        /// +-5%, which swung the stopping distance +-10% and chattered the decel trigger. 0.06 is
+        /// roughly a 16-tick time constant - a quarter of a second - which damps a two-tick
+        /// alternation flat while still reacting fast enough for a burn.
+        /// </summary>
+        private const double Smoothing = 0.06;
 
         private static Vector3D _lastPosition;
         private static Vector3D _velocity;
