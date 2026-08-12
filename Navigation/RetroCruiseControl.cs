@@ -572,7 +572,18 @@ namespace IngameScript
                         // believes it can do - i.e. brake as late and as hard as possible. After an
                         // early midpoint flip the requirement is still low, so it coasted to the
                         // target and then panic-stopped. Once committed, burn immediately.
-                        bool shouldDecel = _committedToDecel
+                        //
+                        // ...but the force MUST release near the target. Held unconditionally it
+                        // drove straight through zero into reverse, at which point !closing threw
+                        // the cruise into Overshoot and it never completed. Only force the burn
+                        // while there is genuinely still speed to kill and distance to do it in;
+                        // inside that, hand back to the stock proportional logic to land it.
+                        bool forceBurn = _committedToDecel
+                            && closing
+                            && closingSpeed > TARGET_REACHED_SPEED
+                            && desiredStopDist > TARGET_REACHED_DISTANCE;
+
+                        bool shouldDecel = forceBurn
                             || desiredStopAccel >= BrakingAccel * (1 - DECEL_RESERVE_THRUST);
 
                         _decelTime = desiredStopTime;
@@ -593,7 +604,7 @@ namespace IngameScript
                         // thrust you cruised on". If the model later demands MORE than that, the
                         // computed ratio is already higher and wins.
                         double decelRatio = desiredStopAccel / _forwardAccelPremult;
-                        if (_committedToDecel)
+                        if (forceBurn)
                             decelRatio = Math.Max(decelRatio, 1.0);
 
                         float forwardThrustRatio = (onTarget && shouldDecel) ? (float)decelRatio : 0;
