@@ -311,6 +311,10 @@ const int printInterval = 10;
                 HandleArgs(argument);
             }
 
+            // Keep only the last ~40 lines. Nothing ever cleared this, which was fine when only
+            // stage changes logged, but not now that the cruise controller logs every tick.
+            if (debug.Length > 4000)
+                debug.Remove(0, debug.Length - 3000);
             debugLcd?.WriteText(debug.ToString());
 
             if (_navMode == NavModeEnum.Idle)

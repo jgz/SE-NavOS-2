@@ -116,6 +116,14 @@ namespace IngameScript
         /// <summary>Planned braking distance, shown during Accelerate to compare against Flip and Burn.</summary>
         private double _plannedDecelDist;
 
+        /// <summary>
+        /// True only when the planner took its "we can reach DesiredSpeed" branch. In the other
+        /// branch _accelTime is ComputeTimeToDecel() minus half the flip time, which goes negative
+        /// almost at once - and with Max Speed set far above anything reachable that branch is
+        /// taken permanently, so _accelDist <= 0 fired the flip within seconds of departure.
+        /// </summary>
+        private bool _plannerCanReachSpeed;
+
         //updated every 10 ticks
         private Vector3D _naturalGravity;
 
@@ -471,7 +479,12 @@ namespace IngameScript
                 // -00:03, still accelerating, with Flip and Burn calling retroburn in 14 s.
                 //
                 // The planner broadly agrees with the mod. Wire it up.
-                bool plannerOverdue = _accelDist <= 0;
+                bool plannerOverdue = _plannerCanReachSpeed && _accelDist <= 0;
+
+                Program.Log($"v={currentSpeed:0} tgt={_targetDist / 1000:0.0}k stop={stopDist / 1000:0.0}k"
+                    + $" avail={Math.Sqrt(availableDistSq) / 1000:0.0}k flipAt={_midpointR / 1000:0.0}k"
+                    + $" accelD={_accelDist / 1000:0.0}k brakeAcc={BrakingAccel:0.0}"
+                    + $" [{(stopDist * stopDist >= availableDistSq ? "MODEL " : "")}{(pastMidpoint ? "MID " : "")}{(plannerOverdue ? "PLAN " : "")}{(_plannerCanReachSpeed ? "reach" : "degen")}]");
 
                 if (closing && ((stopDist * stopDist) >= availableDistSq || pastMidpoint || plannerOverdue))
                 {
@@ -510,11 +523,13 @@ namespace IngameScript
 
                     if (accelDist + decelDist > targetDist) // can't reach desired speed
                     {
+                        _plannerCanReachSpeed = false;
                         _accelTime = Autopilot.ComputeTimeToDecel(closingSpeed, targetDist, _forwardAccelPremult, BrakingAccel) - ShipFlipTimeInSeconds * 0.5;
                         _accelDist = (closingSpeed + (closingSpeed + _forwardAccelPremult * _accelTime)) * 0.5 * _accelTime;
                     }
                     else
                     {
+                        _plannerCanReachSpeed = true;
                         double cruiseDist = targetDist - accelDist - decelDist;
                         _accelDist = accelDist + cruiseDist;
                         _accelTime = (closingSpeed < DesiredSpeed ? ((DesiredSpeed - closingSpeed) / _forwardAccelPremult) : 0) + (cruiseDist / DesiredSpeed) - ShipFlipTimeInSeconds;
