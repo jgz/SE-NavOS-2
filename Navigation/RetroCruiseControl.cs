@@ -568,7 +568,12 @@ namespace IngameScript
                     {
                         double desiredStopTime = desiredStopDist / (closingSpeed * 0.5) - THRUST_TIME_STEP;
                         double desiredStopAccel = (closing && desiredStopTime > 0 && closingSpeed > 0) ? (1.0 / (desiredStopTime / closingSpeed)) : _forwardAccelPremult;
-                        bool shouldDecel = desiredStopAccel >= BrakingAccel * (1 - DECEL_RESERVE_THRUST);
+                        // Stock only burns once the REQUIRED decel has risen to ~95% of what it
+                        // believes it can do - i.e. brake as late and as hard as possible. After an
+                        // early midpoint flip the requirement is still low, so it coasted to the
+                        // target and then panic-stopped. Once committed, burn immediately.
+                        bool shouldDecel = _committedToDecel
+                            || desiredStopAccel >= BrakingAccel * (1 - DECEL_RESERVE_THRUST);
 
                         _decelTime = desiredStopTime;
                         _decelDist = (closingSpeed * closingSpeed) / (2 * BrakingAccel);
@@ -582,7 +587,16 @@ namespace IngameScript
                             shouldDecel |= actualStopDist >= desiredStopDist - (closingSpeed * THRUST_TIME_STEP);
                         }
 
-                        float forwardThrustRatio = (onTarget && shouldDecel) ? (float)(desiredStopAccel / _forwardAccelPremult) : 0;
+                        // Symmetric burn: having accelerated the first half at MaxThrustRatio,
+                        // decelerate the second half at the same ratio. Saturate() clamps to 1 and
+                        // the * MaxThrustRatio below scales it, so forcing 1.0 here means "the
+                        // thrust you cruised on". If the model later demands MORE than that, the
+                        // computed ratio is already higher and wins.
+                        double decelRatio = desiredStopAccel / _forwardAccelPremult;
+                        if (_committedToDecel)
+                            decelRatio = Math.Max(decelRatio, 1.0);
+
+                        float forwardThrustRatio = (onTarget && shouldDecel) ? (float)decelRatio : 0;
                         forwardThrustRatio = MathHelper.Saturate(forwardThrustRatio) * MaxThrustRatio;
                         SetForwardThrustAndResetBackThrusts(forwardThrustRatio);
 
