@@ -593,7 +593,19 @@ namespace IngameScript
                     {
                         double desiredStopTime = desiredStopDist / (closingSpeed * 0.5) - THRUST_TIME_STEP;
                         double desiredStopAccel = (closing && desiredStopTime > 0 && closingSpeed > 0) ? (1.0 / (desiredStopTime / closingSpeed)) : _forwardAccelPremult;
-                        bool shouldDecel = desiredStopAccel >= BrakingAccel * (1 - DECEL_RESERVE_THRUST);
+                        // Stock will not light the drive until the REQUIRED decel reaches ~95%
+                        // of believed capacity - brake as late and as hard as possible. Observed:
+                        // Decelerate stage, Stopping Dist 7.4 km, Target Dist 11.2 km, drive OFF,
+                        // while Flip and Burn was already reporting TOO FAST. It sits retrograde
+                        // and coasts because it believes it has margin.
+                        //
+                        // Once committed, burn. ONLY the gate is forced - the magnitude below is
+                        // untouched stock proportional control, so it stays small early, grows as
+                        // the distance closes, and tapers to zero on arrival. A previous attempt
+                        // also floored the ratio at 1.0; THAT is what drove through zero into
+                        // reverse and broke stopping. Not repeating it.
+                        bool shouldDecel = _committedToDecel
+                            || desiredStopAccel >= BrakingAccel * (1 - DECEL_RESERVE_THRUST);
 
                         _decelTime = desiredStopTime;
                         _decelDist = (closingSpeed * closingSpeed) / (2 * BrakingAccel);
