@@ -113,6 +113,9 @@ namespace IngameScript
         /// <summary>Remaining distance at which the midpoint rule will commit; shown on the console.</summary>
         private double _midpointR;
 
+        /// <summary>Planned braking distance, shown during Accelerate to compare against Flip and Burn.</summary>
+        private double _plannedDecelDist;
+
         //updated every 10 ticks
         private Vector3D _naturalGravity;
 
@@ -228,6 +231,9 @@ namespace IngameScript
             {
                 strb.AppendLine($"   Leg Dist {(_startDist / 1000d),19:0.0} km");
                 strb.AppendLine($"   Flip At {(_midpointR / 1000d),20:0.0} km{(_committedToDecel ? " *" : "")}");
+                // Compare this against Flip and Burn's retro-burn distance. If ours is SMALLER,
+                // BrakingAccel is optimistic and we will flip late - lower BrakingSafetyFactor.
+                strb.AppendLine($"   Brake Dist {(_plannedDecelDist / 1000d),17:0.0} km");
             }
 
             strb.AppendLine($"Config ------------------------");
@@ -482,6 +488,7 @@ namespace IngameScript
                             ? ((DesiredSpeed * DesiredSpeed - closingSpeed * closingSpeed) / a2)
                             : 0;
                     double decelDist = DesiredSpeed * DesiredSpeed / d2;
+                    _plannedDecelDist = decelDist;
 
                     if (accelDist + decelDist > targetDist) // can't reach desired speed
                     {
