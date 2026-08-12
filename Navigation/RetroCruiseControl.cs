@@ -472,25 +472,28 @@ namespace IngameScript
                     && _startDist > 0
                     && _targetDist <= midpointR;
 
-                // _accelDist is how much further the PLANNER thinks we should keep accelerating.
-                // It was display-only, and it goes negative - "you are already overdue" - while
-                // the ship happily carries on, because the trigger above uses a different and far
-                // more permissive test. Observed in flight: Remaining Dist -2425 m, Accelerate
-                // -00:03, still accelerating, with Flip and Burn calling retroburn in 14 s.
+                // _accelDist / _accelTime are NOT used as a trigger. They come from the planner,
+                // which exists to shape an accelerate-cruise-decelerate profile around
+                // DesiredSpeed. Jon never caps speed - the cap is set to 10000 on a hotbar button
+                // and the only thing he throttles is thrust, for signature - so there is no cruise
+                // phase and the planner is permanently in its degenerate branch, where _accelTime
+                // is ComputeTimeToDecel() minus half the flip time and goes negative within
+                // seconds. Wiring it to the trigger flipped 12.7 km into a 46.8 km leg.
                 //
-                // The planner broadly agrees with the mod. Wire it up.
-                bool plannerOverdue = _plannerCanReachSpeed && _accelDist <= 0;
+                // With no speed cap the profile is accelerate / flip / decelerate, and the
+                // symmetric midpoint rule below is not a backstop - it IS the correct answer.
+                bool plannerOverdue = false;
 
                 Program.Log($"v={currentSpeed:0} tgt={_targetDist / 1000:0.0}k stop={stopDist / 1000:0.0}k"
                     + $" avail={Math.Sqrt(availableDistSq) / 1000:0.0}k flipAt={_midpointR / 1000:0.0}k"
                     + $" accelD={_accelDist / 1000:0.0}k brakeAcc={BrakingAccel:0.0}"
                     + $" [{(stopDist * stopDist >= availableDistSq ? "MODEL " : "")}{(pastMidpoint ? "MID " : "")}{(plannerOverdue ? "PLAN " : "")}{(_plannerCanReachSpeed ? "reach" : "degen")}]");
 
-                if (closing && ((stopDist * stopDist) >= availableDistSq || pastMidpoint || plannerOverdue))
+                if (closing && ((stopDist * stopDist) >= availableDistSq || pastMidpoint))
                 {
                     // Past the midpoint at equal thrust there is no way back - re-accelerating
                     // can only guarantee an overshoot. Latch it.
-                    if (pastMidpoint || plannerOverdue)
+                    if (pastMidpoint)
                         _committedToDecel = true;
 
                     Stage = CruiseStage.Decelerate;
