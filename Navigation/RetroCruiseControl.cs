@@ -417,9 +417,22 @@ namespace IngameScript
                 // compounding. Overshooting because MaxEffectiveThrust lies is the failure this
                 // exists to stop. Decelerate hands back to Accelerate if it turns out to be
                 // early, so a low-speed leg still self-corrects.
+                // Equal thrust both ways, at rest at both ends, coasting through the flip:
+                //     D = d_accel + v*t_flip + d_decel,  d_accel == d_decel
+                // so the flip must start with remaining distance
+                //     R = (D + v*t_flip) / 2
+                // i.e. BEFORE the halfway point, by half the flip distance. At 20 km/s with a
+                // 15 s flip that correction is 150 km. Flipping exactly at halfway is already
+                // late; accelerating past it cannot be recovered at equal thrust.
+                //
+                // t_flip is measured by CalibrateTurn, not derived from thrust, so this whole
+                // expression stays independent of the MaxEffectiveThrust figure that lies.
+                double midpointR = _startDist * _config.MidpointFlipFraction
+                                 + currentSpeed * ShipFlipTimeInSeconds * 0.5;
+
                 bool pastMidpoint = _config.MidpointFlipFraction > 0
                     && _startDist > 0
-                    && _targetDist <= _startDist * _config.MidpointFlipFraction;
+                    && _targetDist <= midpointR;
 
                 if (closing && ((stopDist * stopDist) >= availableDistSq || pastMidpoint))
                 {

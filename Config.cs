@@ -57,6 +57,10 @@ namespace IngameScript
         /// exactly what MaxEffectiveThrust/mass fails to do on a modded server. Reserve some
         /// thrust headroom (cruise at ~70%) and the burn can make up the time lost to the flip.
         ///
+        /// Applied as R = startDist*fraction + v*flipTime/2, so the flip begins BEFORE the
+        /// geometric halfway point by half the distance covered while turning. Flipping exactly
+        /// at halfway is already late.
+        ///
         /// Set 0 to disable and trust the model alone.
         /// </summary>
         public double MidpointFlipFraction { get; set; } = 0.5;
