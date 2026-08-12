@@ -1,4 +1,4 @@
-using VRageMath;
+﻿using VRageMath;
 
 namespace IngameScript
 {
@@ -22,14 +22,29 @@ namespace IngameScript
     /// </summary>
     public static class TrueVelocity
     {
-        /// <summary>Reject samples implying more than this acceleration; they are instance
-        /// transfers or teleports, not flight.</summary>
-        private const double MaxPlausibleAcceleration = 2000;
+        /// <summary>
+        /// Reject a single position jump larger than this. An instance transfer moves the grid
+        /// hundreds of km at once; 20 km in one tick is 1.2 million m/s, which no drive does.
+        ///
+        /// This replaces an acceleration-based test that LATCHED. Flip and Burn repositions the
+        /// grid by teleport, and the server delivers those updates unevenly - some ticks move
+        /// almost nothing, the next moves a long way. Every one of those samples looked like
+        /// impossible acceleration, so every one was rejected, and _velocity stayed frozen at the
+        /// last value accepted before the clamp engaged. Observed in flight as trk pinned at
+        /// exactly 1000 while the ship covered ground at 3100 m/s.
+        /// </summary>
+        private const double MaxPlausibleJumpMetres = 20000;
+
+        /// <summary>Smoothing factor. Bursty position updates need averaging, not rejection.</summary>
+        private const double Smoothing = 0.15;
 
         private static Vector3D _lastPosition;
         private static Vector3D _velocity;
         private static bool _havePosition;
         private static bool _haveVelocity;
+
+        /// <summary>Metres moved on the last accepted sample; diagnostic only.</summary>
+        public static double LastDeltaMetres;
 
         /// <summary>Last good position-differenced velocity. Zero until primed.</summary>
         public static Vector3D Value => _velocity;
@@ -47,8 +62,15 @@ namespace IngameScript
                 return;
             }
 
-            Vector3D sample = (position - _lastPosition) / deltaSeconds;
+            Vector3D delta = position - _lastPosition;
             _lastPosition = position;
+
+            // Genuine relocation: drop it, do not fold it into the average.
+            if (delta.Length() > MaxPlausibleJumpMetres)
+                return;
+
+            LastDeltaMetres = delta.Length();
+            Vector3D sample = delta / deltaSeconds;
 
             // First real sample has nothing to compare against, so take it as-is.
             if (!_haveVelocity)
@@ -58,12 +80,9 @@ namespace IngameScript
                 return;
             }
 
-            // A grid jump (Nexus instance transfer, teleport) shows up as impossible acceleration.
-            // Drop that one sample; the next tick is continuous again and will be accepted.
-            if ((sample - _velocity).Length() / deltaSeconds > MaxPlausibleAcceleration)
-                return;
-
-            _velocity = sample;
+            // Low-pass instead of reject. Uneven delivery averages out over a handful of ticks and
+            // cannot latch the estimate the way the old filter did.
+            _velocity = _velocity * (1 - Smoothing) + sample * Smoothing;
         }
 
         public static void Reset()

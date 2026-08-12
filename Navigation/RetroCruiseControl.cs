@@ -488,10 +488,9 @@ namespace IngameScript
                 // 1000, so either TrueVelocity is not tracking or GetTrueVelocity is not preferring
                 // it. Print both raw figures rather than guess. avail has been identical to tgt in
                 // every sample so far, so it is not worth the characters.
-                Program.Log($"v={currentSpeed:0} phys={ShipController.GetShipVelocities().LinearVelocity.Length():0}"
-                    + $" trk={TrueVelocity.Value.Length():0} dt={_program.Runtime.TimeSinceLastRun.TotalSeconds:0.000}"
-                    + $" tgt={_targetDist / 1000:0.0}k stop={stopDist / 1000:0.0}k flipAt={_midpointR / 1000:0.0}k"
-                    + $" bAcc={BrakingAccel:0.0}"
+                Program.Log($"v={currentSpeed:0} trk={TrueVelocity.Value.Length():0}"
+                    + $" dpos={TrueVelocity.LastDeltaMetres:0.0}m tgt={_targetDist / 1000:0.0}k"
+                    + $" stop={stopDist / 1000:0.0}k flipAt={_midpointR / 1000:0.0}k"
                     + $" [{(stopDist * stopDist >= availableDistSq ? "MODEL " : "")}{(pastMidpoint ? "MID" : "")}]");
 
                 if (closing && ((stopDist * stopDist) >= availableDistSq || pastMidpoint))
