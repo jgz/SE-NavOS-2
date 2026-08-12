@@ -16,7 +16,10 @@ namespace IngameScript
         {
             commands = new Dictionary<string, Action<CommandLine>>
             {
-                { "abort", cmd => AbortNav(false) },
+                // true => also clears PersistStateData. With false the Custom Data kept
+                // saying "Cruise|..." after an abort, so every later PB restart tried to
+                // restore a cruise that was over.
+                { "abort", cmd => AbortNav(true) },
                 { "reload", CommandReload },
                 { "maxthrustoverrideratio", CommandSetThrustRatio }, { "thrustratio", CommandSetThrustRatio },
                 { "cruise", CommandCruise },

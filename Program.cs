@@ -168,7 +168,14 @@ const int printInterval = 10;
             if (args.Length == 0 || !Enum.TryParse<NavModeEnum>(args[0], out mode) || mode == NavModeEnum.Idle)
                 return;
 
-            AbortNav(false);
+            // NO AbortNav() here. This runs from the constructor, so there is nothing to
+            // abort - CruiseController is always null on a fresh Program. All the call did
+            // was ResetThrustOverrides() + DisableGyroOverrides(), i.e. wipe whatever the
+            // PILOT had set. A Nexus instance transfer restarts the PB, so that wipe fired
+            // on every sector crossing and zeroed a manual Flip-and-Burn override.
+            //
+            // If the restore below succeeds, the restored controller writes its own
+            // overrides. If it fails, the ship is left exactly as the pilot had it.
 
             try
             {
