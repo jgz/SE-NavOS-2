@@ -598,14 +598,19 @@ namespace IngameScript
                             shouldDecel |= actualStopDist >= desiredStopDist - (closingSpeed * THRUST_TIME_STEP);
                         }
 
-                        // Symmetric burn: having accelerated the first half at MaxThrustRatio,
-                        // decelerate the second half at the same ratio. Saturate() clamps to 1 and
-                        // the * MaxThrustRatio below scales it, so forcing 1.0 here means "the
-                        // thrust you cruised on". If the model later demands MORE than that, the
-                        // computed ratio is already higher and wins.
-                        double decelRatio = desiredStopAccel / _forwardAccelPremult;
-                        if (forceBurn)
-                            decelRatio = Math.Max(decelRatio, 1.0);
+                        // NO fixed floor. Flooring the ratio at 1.0 meant full thrust all the way
+                        // down to 0.05 m/s, which drove straight through zero into reverse - the
+                        // burn had no way to taper. Proportional control does that by itself.
+                        //
+                        // The denominator is BrakingAccel, not _forwardAccelPremult. The ratio is
+                        // meant to be "fraction of the braking I actually have", and
+                        // _forwardAccelPremult is MaxEffectiveThrust/mass, which overestimates on
+                        // this modpack - so dividing by it commands too little thrust and the ship
+                        // sails past. Dividing by the derated figure is what finally makes
+                        // BrakingSafetyFactor reach the throttle instead of only the trigger.
+                        double decelRatio = BrakingAccel > 0
+                            ? desiredStopAccel / BrakingAccel
+                            : desiredStopAccel / _forwardAccelPremult;
 
                         float forwardThrustRatio = (onTarget && shouldDecel) ? (float)decelRatio : 0;
                         forwardThrustRatio = MathHelper.Saturate(forwardThrustRatio) * MaxThrustRatio;
