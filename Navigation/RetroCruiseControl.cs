@@ -568,23 +568,7 @@ namespace IngameScript
                     {
                         double desiredStopTime = desiredStopDist / (closingSpeed * 0.5) - THRUST_TIME_STEP;
                         double desiredStopAccel = (closing && desiredStopTime > 0 && closingSpeed > 0) ? (1.0 / (desiredStopTime / closingSpeed)) : _forwardAccelPremult;
-                        // Stock only burns once the REQUIRED decel has risen to ~95% of what it
-                        // believes it can do - i.e. brake as late and as hard as possible. After an
-                        // early midpoint flip the requirement is still low, so it coasted to the
-                        // target and then panic-stopped. Once committed, burn immediately.
-                        //
-                        // ...but the force MUST release near the target. Held unconditionally it
-                        // drove straight through zero into reverse, at which point !closing threw
-                        // the cruise into Overshoot and it never completed. Only force the burn
-                        // while there is genuinely still speed to kill and distance to do it in;
-                        // inside that, hand back to the stock proportional logic to land it.
-                        bool forceBurn = _committedToDecel
-                            && closing
-                            && closingSpeed > TARGET_REACHED_SPEED
-                            && desiredStopDist > TARGET_REACHED_DISTANCE;
-
-                        bool shouldDecel = forceBurn
-                            || desiredStopAccel >= BrakingAccel * (1 - DECEL_RESERVE_THRUST);
+                        bool shouldDecel = desiredStopAccel >= BrakingAccel * (1 - DECEL_RESERVE_THRUST);
 
                         _decelTime = desiredStopTime;
                         _decelDist = (closingSpeed * closingSpeed) / (2 * BrakingAccel);
@@ -598,21 +582,7 @@ namespace IngameScript
                             shouldDecel |= actualStopDist >= desiredStopDist - (closingSpeed * THRUST_TIME_STEP);
                         }
 
-                        // NO fixed floor. Flooring the ratio at 1.0 meant full thrust all the way
-                        // down to 0.05 m/s, which drove straight through zero into reverse - the
-                        // burn had no way to taper. Proportional control does that by itself.
-                        //
-                        // The denominator is BrakingAccel, not _forwardAccelPremult. The ratio is
-                        // meant to be "fraction of the braking I actually have", and
-                        // _forwardAccelPremult is MaxEffectiveThrust/mass, which overestimates on
-                        // this modpack - so dividing by it commands too little thrust and the ship
-                        // sails past. Dividing by the derated figure is what finally makes
-                        // BrakingSafetyFactor reach the throttle instead of only the trigger.
-                        double decelRatio = BrakingAccel > 0
-                            ? desiredStopAccel / BrakingAccel
-                            : desiredStopAccel / _forwardAccelPremult;
-
-                        float forwardThrustRatio = (onTarget && shouldDecel) ? (float)decelRatio : 0;
+                        float forwardThrustRatio = (onTarget && shouldDecel) ? (float)(desiredStopAccel / _forwardAccelPremult) : 0;
                         forwardThrustRatio = MathHelper.Saturate(forwardThrustRatio) * MaxThrustRatio;
                         SetForwardThrustAndResetBackThrusts(forwardThrustRatio);
 
