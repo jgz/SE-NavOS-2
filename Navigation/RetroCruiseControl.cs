@@ -128,7 +128,9 @@ namespace IngameScript
 
         // accel stage variables
         private double _accelTime;
-        private double _accelDist;
+        // MaxValue, not 0: the flip trigger below tests _accelDist <= 0, and this is not
+        // meaningful until the planner has run at least once.
+        private double _accelDist = double.MaxValue;
         private double _lastForwardSpeedDuringAccel;
         private double _lastForwardThrustRatioDuringAccel;
 
@@ -462,11 +464,20 @@ namespace IngameScript
                     && _startDist > 0
                     && _targetDist <= midpointR;
 
-                if (closing && ((stopDist * stopDist) >= availableDistSq || pastMidpoint))
+                // _accelDist is how much further the PLANNER thinks we should keep accelerating.
+                // It was display-only, and it goes negative - "you are already overdue" - while
+                // the ship happily carries on, because the trigger above uses a different and far
+                // more permissive test. Observed in flight: Remaining Dist -2425 m, Accelerate
+                // -00:03, still accelerating, with Flip and Burn calling retroburn in 14 s.
+                //
+                // The planner broadly agrees with the mod. Wire it up.
+                bool plannerOverdue = _accelDist <= 0;
+
+                if (closing && ((stopDist * stopDist) >= availableDistSq || pastMidpoint || plannerOverdue))
                 {
                     // Past the midpoint at equal thrust there is no way back - re-accelerating
                     // can only guarantee an overshoot. Latch it.
-                    if (pastMidpoint)
+                    if (pastMidpoint || plannerOverdue)
                         _committedToDecel = true;
 
                     Stage = CruiseStage.Decelerate;
