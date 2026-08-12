@@ -101,6 +101,18 @@ namespace IngameScript
         /// <summary>Distance to target when this cruise began; -1 until the first tick.</summary>
         private double _startDist = -1;
 
+        /// <summary>
+        /// Latched once the midpoint rule commits us to the burn. Decelerate is otherwise allowed
+        /// to hand back to Accelerate, and because the midpoint test only gets MORE true as the
+        /// distance shrinks, that produced a stage ping-pong every tick - and OnStageChanged
+        /// serialises the whole config into Me.CustomData, so at Update1 it killed the PB before
+        /// the ship ever finished a flip.
+        /// </summary>
+        private bool _committedToDecel;
+
+        /// <summary>Remaining distance at which the midpoint rule will commit; shown on the console.</summary>
+        private double _midpointR;
+
         //updated every 10 ticks
         private Vector3D _naturalGravity;
 
@@ -209,6 +221,15 @@ namespace IngameScript
               : _stage == CruiseStage.Aborted                             ? $""
               : _stage == CruiseStage.Terminated                          ? $"{_terminateReason}"
               : "");
+            // Midpoint-flip diagnostics, under the stage block. Flip fires at whichever comes
+            // first: the model's stopping distance, or Target Dist falling to Flip At.
+            if (_config.MidpointFlipFraction > 0
+                && (_stage == CruiseStage.Accelerate || _stage == CruiseStage.Decelerate))
+            {
+                strb.AppendLine($"   Leg Dist {(_startDist / 1000d),19:0.0} km");
+                strb.AppendLine($"   Flip At {(_midpointR / 1000d),20:0.0} km{(_committedToDecel ? " *" : "")}");
+            }
+
             strb.AppendLine($"Config ------------------------");
             strb.AppendLine($"  Max Speed {DesiredSpeed,15:0.0} m/s");
             strb.AppendLine($"  Max Thrust {MaxThrustRatio,18:0 %}");
@@ -427,8 +448,9 @@ namespace IngameScript
                 //
                 // t_flip is measured by CalibrateTurn, not derived from thrust, so this whole
                 // expression stays independent of the MaxEffectiveThrust figure that lies.
-                double midpointR = _startDist * _config.MidpointFlipFraction
-                                 + currentSpeed * ShipFlipTimeInSeconds * 0.5;
+                _midpointR = _startDist * _config.MidpointFlipFraction
+                           + currentSpeed * ShipFlipTimeInSeconds * 0.5;
+                double midpointR = _midpointR;
 
                 bool pastMidpoint = _config.MidpointFlipFraction > 0
                     && _startDist > 0
@@ -436,6 +458,11 @@ namespace IngameScript
 
                 if (closing && ((stopDist * stopDist) >= availableDistSq || pastMidpoint))
                 {
+                    // Past the midpoint at equal thrust there is no way back - re-accelerating
+                    // can only guarantee an overshoot. Latch it.
+                    if (pastMidpoint)
+                        _committedToDecel = true;
+
                     Stage = CruiseStage.Decelerate;
                     stageChanged = true;
                 }
@@ -531,7 +558,7 @@ namespace IngameScript
                     double desiredStopDist = Vector3D.ProjectOnVector(ref relativePos, ref aimDir).Length();
                     double timeUntilDecel = (desiredStopDist - (closingSpeed * closingSpeed) / (2 * BrakingAccel)) / closingSpeed;
 
-                    if (timeUntilDecel > 2 * ShipFlipTimeInSeconds)
+                    if (!_committedToDecel && timeUntilDecel > 2 * ShipFlipTimeInSeconds)
                     {
                         Stage = CruiseStage.Accelerate;
                         stageChanged = true;
