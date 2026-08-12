@@ -98,6 +98,9 @@ namespace IngameScript
         private float _forwardAccelPremult;
         private float _minSideAccel;
 
+        /// <summary>Distance to target when this cruise began; -1 until the first tick.</summary>
+        private double _startDist = -1;
+
         //updated every 10 ticks
         private Vector3D _naturalGravity;
 
@@ -270,6 +273,8 @@ namespace IngameScript
 
             _targetDir = targetDir;
             _targetDist = targetDist;
+            if (_startDist < 0)
+                _startDist = targetDist;
 
             bool stageChanged = false || _stageChangedPrev;
             _stageChangedPrev = false;
@@ -406,7 +411,17 @@ namespace IngameScript
                 Vector3D velocityDir = currentVelocity.Normalized();
                 double availableDistSq = Vector3D.ProjectOnVector(ref relativePos, ref velocityDir).LengthSquared();
 
-                if (closing && (stopDist * stopDist) >= availableDistSq)
+                // Flip when the model says to, OR once half the leg is gone - whichever comes
+                // first. The midpoint rule is model-independent: the same real acceleration
+                // applies to both halves, so an inaccurate thrust figure cancels instead of
+                // compounding. Overshooting because MaxEffectiveThrust lies is the failure this
+                // exists to stop. Decelerate hands back to Accelerate if it turns out to be
+                // early, so a low-speed leg still self-corrects.
+                bool pastMidpoint = _config.MidpointFlipFraction > 0
+                    && _startDist > 0
+                    && _targetDist <= _startDist * _config.MidpointFlipFraction;
+
+                if (closing && ((stopDist * stopDist) >= availableDistSq || pastMidpoint))
                 {
                     Stage = CruiseStage.Decelerate;
                     stageChanged = true;

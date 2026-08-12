@@ -47,6 +47,20 @@ namespace IngameScript
         public const double MinBrakingSafetyFactor = 0.25;
         public const double MaxBrakingSafetyFactor = 1.0;
 
+        /// <summary>
+        /// Flip no later than this fraction of the leg remaining, regardless of what the
+        /// stopping-distance model says. 0.5 = the classic symmetric burn: accelerate for half
+        /// the distance, flip, decelerate for the other half.
+        ///
+        /// The point is that it does not depend on the thrust model being right. Whatever the
+        /// real acceleration is, it applies to BOTH halves, so the error cancels - which is
+        /// exactly what MaxEffectiveThrust/mass fails to do on a modded server. Reserve some
+        /// thrust headroom (cruise at ~70%) and the burn can make up the time lost to the flip.
+        ///
+        /// Set 0 to disable and trust the model alone.
+        /// </summary>
+        public double MidpointFlipFraction { get; set; } = 0.5;
+
         public List<string> JourneySetup { get; } = new List<string>();
 
         private Config() { }
@@ -178,6 +192,13 @@ namespace IngameScript
                     conf.MaintainDesiredSpeed = val;
             }
 
+            if (confValues.TryGetValue(nameof(MidpointFlipFraction), out result))
+            {
+                double val;
+                if (double.TryParse(result, out val) && !double.IsNaN(val))
+                    conf.MidpointFlipFraction = Math.Min(Math.Max(val, 0), 1);
+            }
+
             if (confValues.TryGetValue(nameof(BrakingSafetyFactor), out result))
             {
                 double val;
@@ -237,6 +258,10 @@ namespace IngameScript
             strb.AppendLine("// Raise this above the world limit on servers running Flip and Burn.");
             strb.AppendLine($"{nameof(MaxSpeedOverride)}={MaxSpeedOverride}");
             strb.AppendLine($"{nameof(BrakingSafetyFactor)}={BrakingSafetyFactor}");
+            strb.AppendLine();
+            strb.AppendLine("// Flip no later than this fraction of the leg remaining, whatever the");
+            strb.AppendLine("// stopping model says. 0.5 = symmetric burn. 0 = model only.");
+            strb.AppendLine($"{nameof(MidpointFlipFraction)}={MidpointFlipFraction}");
             strb.AppendLine();
             strb.AppendLine("// <speed> <stopAtWaypoint> [thrustRatio] [brakingFactor] <GPS>");
             strb.AppendLine("[Journey Start]");
