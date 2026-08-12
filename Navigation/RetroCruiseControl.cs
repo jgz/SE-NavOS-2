@@ -487,7 +487,14 @@ namespace IngameScript
                         : closingSpeed < DesiredSpeed
                             ? ((DesiredSpeed * DesiredSpeed - closingSpeed * closingSpeed) / a2)
                             : 0;
-                    double decelDist = DesiredSpeed * DesiredSpeed / d2;
+                    // Brake for the speed we will actually be doing, not the configured cap.
+                    // DesiredSpeed is a ceiling on acceleration, not a promise: enter a cruise
+                    // already faster than it - which happens constantly after an interrupted burn
+                    // or an NPC slowdown - and DesiredSpeed^2 understates the braking room needed,
+                    // so the ship plans to keep accelerating far too long. The flip trigger itself
+                    // already keys off currentSpeed; this is the planning half catching up.
+                    double peakSpeed = Math.Max(DesiredSpeed, closingSpeed);
+                    double decelDist = peakSpeed * peakSpeed / d2;
                     _plannedDecelDist = decelDist;
 
                     if (accelDist + decelDist > targetDist) // can't reach desired speed
