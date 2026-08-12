@@ -304,7 +304,15 @@ const int printInterval = 10;
             counter++;
 
             // Must run every tick, before any controller reads velocity.
-            TrueVelocity.Sample(Me.CubeGrid.WorldMatrix.Translation, Runtime.TimeSinceLastRun.TotalSeconds);
+            // Difference the SAME point the navigation measures distance from. Sampling
+            // Me.CubeGrid.WorldMatrix.Translation instead gave trk=1000 while the controller's own
+            // Target Dist was falling at 2000 m/s - two position sources disagreeing by 2x, which
+            // left every stopping-distance calculation short by 4x in the v^2 term. Using the
+            // controller's AABB centre makes velocity and distance come from one frame, so any
+            // clamp or teleport affects both identically and they cannot drift apart.
+            TrueVelocity.Sample(
+                controller != null ? controller.WorldAABB.Center : Me.CubeGrid.WorldMatrix.Translation,
+                Runtime.TimeSinceLastRun.TotalSeconds);
 
             if (argument.Length > 0)
             {
